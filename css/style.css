@@ -1,0 +1,115 @@
+/* Greadter — Apple-style minimal. Flat, hairlines, Helvetica. No boxed cards. */
+:root{
+  --ink:#1d1d1f; --sub:#6e6e73; --line:#d2d2d7; --bg:#fbfbfd;
+  --blue:#0071e3; --red:#bf4800; --green:#1d8127; --amber:#9a6a00;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+::selection{background:#e8e8ed}
+
+/* top nav — thin translucent, like apple.com */
+.topbar{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;
+  padding:10px 22px;background:rgba(251,251,253,.85);backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid var(--line)}
+.brand{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.topbar nav a{color:var(--ink);opacity:.7;text-decoration:none;font-size:13px;margin-left:20px}
+.topbar nav a.active,.topbar nav a:hover{opacity:1}
+
+.container{max-width:720px;margin:0 auto;padding:32px 22px 80px}
+
+/* hero — product page style */
+.hero{text-align:center;padding:56px 0 32px}
+.hero h1{font-size:44px;line-height:1.08;letter-spacing:-.02em;font-weight:600;margin:0 0 10px}
+.hero p{color:var(--sub);font-size:19px;margin:0 0 22px}
+.hero-actions{display:flex;gap:16px;justify-content:center}
+.link{color:var(--blue);text-decoration:none;font-size:15px}
+.link:hover{text-decoration:underline}
+
+/* apple pill buttons only — no boxed cards anywhere */
+.btn{display:inline-block;border:1px solid var(--line);background:#fff;color:var(--blue);
+  border-radius:980px;padding:7px 18px;font-size:14px;cursor:pointer;text-decoration:none}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.danger{background:#fff;color:#b00020;border-color:#e3b4b8}
+.btn.ok{background:#fff;color:var(--green);border-color:#bcd8bf}
+.btn.small{padding:4px 13px;font-size:13px}
+.btn:disabled{opacity:.4;cursor:default}
+button.linklike{background:none;border:none;color:var(--blue);font-size:14px;cursor:pointer;padding:0}
+
+/* collapsible sections — hairlines, chevron, no boxes */
+.sec{border-top:1px solid var(--line);padding:0}
+.sec:last-of-type{border-bottom:1px solid var(--line)}
+.sec>summary{list-style:none;display:flex;justify-content:space-between;align-items:baseline;
+  cursor:pointer;padding:18px 0;font-size:21px;font-weight:600;letter-spacing:-.01em}
+.sec>summary::-webkit-details-marker{display:none}
+.sec>summary .n{color:var(--sub);font-weight:400;font-size:13px;margin-right:10px}
+.sec>summary .chev{color:var(--sub);font-size:14px;font-weight:400}
+.sec[open]>summary .chev{transform:rotate(90deg);display:inline-block}
+.sec .body{padding:0 0 26px}
+.sec .lede{color:var(--sub);font-size:14px;margin:0 0 14px}
+
+/* flat list rows */
+.rows{margin:0;padding:0;list-style:none}
+.rowline{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:11px 0;border-top:1px solid #e8e8ed;cursor:pointer}
+.rowline:first-child{border-top:none}
+.rowline .t{font-weight:500}
+.rowline .s{color:var(--sub);font-size:13px}
+.rowline.sel .t{color:var(--blue)}
+.rowline.sel::after{content:"✓";color:var(--blue);font-size:13px}
+
+/* topic disclosure inside lists */
+.topic{border-top:1px solid #e8e8ed;padding:12px 0}
+.topic:first-child{border-top:none}
+.topic h4{margin:0 0 2px;font-size:16px;font-weight:600}
+.topic .spec{color:var(--sub);font-size:13px;margin:0 0 6px}
+.topic p{margin:4px 0;font-size:14px}
+.topic p b{font-weight:600}
+
+/* tables — hairlines only */
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--sub);font-weight:500;
+  text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
+td{padding:9px 6px;border-bottom:1px solid #e8e8ed;vertical-align:top}
+
+/* status — text + dot, no pills */
+.tag{font-size:12.5px;color:var(--sub);margin-right:10px;white-space:nowrap}
+.tag::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:#a1a1a6;margin-right:6px;vertical-align:1px}
+.tag.sim::before,.tag.late::before{background:#b00020}
+.tag.sim,.tag.late{color:#b00020}
+.tag.pub::before{background:var(--green)} .tag.pub{color:var(--green)}
+.tag.ocr::before{background:#e6a800} .tag.ocr{color:var(--amber)}
+.tag.unpub::before{background:#a1a1a6}
+
+/* feedback — plain indented notes */
+.feedback-wrong,.feedback-ok,.feedback-low{border-top:1px solid #e8e8ed;padding:8px 0 8px 14px;font-size:14px}
+.feedback-wrong{border-left:2px solid #b00020}
+.feedback-ok{border-left:2px solid var(--green)}
+.feedback-low{border-left:2px solid #e6a800}
+.small{font-size:13px} .muted{color:var(--sub)}
+
+/* forms — square, hairline */
+label{display:block;font-size:13px;font-weight:500;margin:12px 0 4px}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:0;background:#fff;
+  padding:9px 10px;font-size:14px;font-family:inherit;margin:0 0 4px;color:var(--ink)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+@media(max-width:640px){.formgrid{grid-template-columns:1fr}.hero h1{font-size:32px}}
+.toolbar{display:flex;gap:14px;align-items:center;margin:12px 0;flex-wrap:wrap}
+.drop{border:1px dashed #a1a1a6;padding:26px;text-align:center;color:var(--sub);font-size:14px;cursor:pointer;margin-top:10px}
+.drop.dragover{border-color:var(--blue);color:var(--blue)}
+.note{font-size:13px;color:var(--sub);padding:10px 0;border-top:1px solid #e8e8ed}
+.alert{font-size:13.5px;color:var(--sub);padding:8px 0}
+.alert.bad{color:#b00020} .alert.ok{color:var(--green)}
+pre.preview{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:#f5f5f7;
+  padding:14px;overflow:auto;max-height:280px;white-space:pre-wrap;margin:10px 0 0}
+.footer{text-align:center;color:var(--sub);font-size:12px;padding:28px;border-top:1px solid var(--line)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.32);display:none;align-items:center;justify-content:center;z-index:50}
+.modal-bg.show{display:flex}
+.modal{background:#fff;padding:24px;max-width:420px;width:92%}
+.grid.two{display:grid;grid-template-columns:1fr 1fr;gap:0 32px}
+@media(max-width:640px){.grid.two{grid-template-columns:1fr}}
+/* legacy .card hooks from JS — forced flat */
+.card{background:none;border:none;border-radius:0;padding:0}

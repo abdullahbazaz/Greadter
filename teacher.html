@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher — Greadter</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Greadter</div>
+  <nav><a href="index.html">Home</a></nav>
+</header>
+<main class="container">
+  <details class="sec" open>
+    <summary><span><span class="n">01</span>Subjects</span><span class="chev">›</span></summary>
+    <div class="body">
+      <div class="formgrid">
+        <div><input id="subName" placeholder="New subject"></div>
+        <div><input id="subCode" placeholder="Code"></div>
+      </div>
+      <div class="toolbar"><button class="btn primary" id="addSubBtn">Add</button></div>
+      <div id="subList" class="rows"></div>
+    </div>
+  </details>
+
+  <details class="sec">
+    <summary><span><span class="n">02</span>Topics</span><span class="chev">›</span></summary>
+    <div class="body">
+      <select id="topicSub"></select>
+      <input id="topicTitle" placeholder="New topic">
+      <textarea id="topicOverview" rows="2" placeholder="Overview"></textarea>
+      <textarea id="topicReq" rows="2" placeholder="Requirements"></textarea>
+      <div class="formgrid">
+        <div><input id="topicMarks" type="number" min="1" value="20"></div>
+        <div><input id="topicDeadline" type="date" value="2026-11-15"></div>
+      </div>
+      <select id="topicResub"><option value="yes">Resubmit allowed</option><option value="no">No resubmit</option></select>
+      <div class="toolbar"><button class="btn primary" id="addTopicBtn">Add</button></div>
+      <div id="topicList"></div>
+    </div>
+  </details>
+
+  <details class="sec">
+    <summary><span><span class="n">03</span>Submissions</span><span class="chev">›</span></summary>
+    <div class="body">
+      <div class="formgrid">
+        <div><select id="fSub"><option value="">All subjects</option></select></div>
+        <div><select id="fTopic"><option value="">All topics</option></select></div>
+      </div>
+      <input id="fSearch" placeholder="Search">
+      <div class="toolbar">
+        <button class="linklike" id="selAll">All</button>
+        <button class="linklike" id="selNone">None</button>
+        <button class="btn small" id="bulkDl">Download</button>
+        <span class="muted small" id="selCount"></span>
+      </div>
+      <div style="overflow:auto"><table id="subTable"></table></div>
+      <pre class="preview" id="previewBox"></pre>
+    </div>
+  </details>
+
+  <details class="sec">
+    <summary><span><span class="n">04</span>Similarity</span><span class="chev">›</span></summary>
+    <div class="body"><div id="simGroups"></div></div>
+  </details>
+
+  <details class="sec">
+    <summary><span><span class="n">05</span>Review</span><span class="chev">›</span></summary>
+    <div class="body">
+      <div id="reviewList"></div>
+      <select id="gradeSub"></select>
+      <input id="gradeMarks" type="number" min="0" placeholder="Marks">
+      <textarea id="gradeFb" rows="2" placeholder="Feedback"></textarea>
+      <div class="toolbar">
+        <button class="btn primary" id="saveGrade">Save</button>
+        <span class="small muted"><input type="checkbox" id="notifyToggle" style="width:auto"> email</span>
+      </div>
+      <div id="gradeMsg"></div>
+    </div>
+  </details>
+
+  <details class="sec">
+    <summary><span><span class="n">06</span>Publish</span><span class="chev">›</span></summary>
+    <div class="body">
+      <select id="pubSub"></select>
+      <div class="toolbar">
+        <button class="btn primary small" id="pubAll">Publish all</button>
+        <button class="btn small" id="unpubAll">Unpublish</button>
+        <button class="btn small" id="csvBtn">CSV</button>
+      </div>
+      <div style="overflow:auto"><table id="pubTable"></table></div>
+    </div>
+  </details>
+
+  <p class="note"><button class="linklike" id="resetBtn">Reset</button></p>
+</main>
+
+<div class="modal-bg" id="delModal"><div class="modal">
+  <h3 style="margin-top:0">Delete?</h3>
+  <p class="small muted">Type <b>delete</b>: <b id="delName"></b></p>
+  <input id="delInput" placeholder="delete">
+  <div class="toolbar"><button class="btn danger" id="delConfirm" disabled>Delete</button><button class="btn" id="delCancel">Cancel</button></div>
+</div></div>
+
+<script src="js/data.js"></script>
+<script src="js/teacher.js"></script>
+</body>
+</html>

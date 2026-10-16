@@ -1,0 +1,49 @@
+ build an assignment grading system which has the following features:
+
+student side:
+
+Students have the following attributes:
+name, roll no., department, registration number.
+this is obvioulsy mandatory for a user to input once he signs up on the website.
+
+1) student opens the website. selects a subject. suppose 1,2,3,4,5. 
+
+2) after selecting the subject, student selects a topic which has been added by teacher.
+
+2) student uploads the assignment in the required subject. uploads can be .pdf, .pptx, .jpg, .png and such relevant assignment types which students generally use. you add more.
+
+3) the website grades the student and the marks are displayed in the website inside the student dashboard. 
+
+this is the student side. obvously we might need to have a database for storing user data so that every user has a unique marksheet. 
+
+teacher side:
+
+1). teacher receives the files, along with the names and roll numbers. 
+
+2) teacher can then view the files online or can download them, either individually or in bulk or selecting the items. 
+
+3) important: the files / assignments need to be converted first from hand written notes to the webste-readable format because we need the website to check for similarites between users' assignments. this is a v important feature. students cheat a lot so we need a system which checks the similarities bw students and whether content has been copied from other students. then the website should mark them similar and match them with the other students and inform the teacher. but here, suppose we have 5 students. a b c d e. a copies from b and c copies from e. so we need to have tags so that cheaters are grouped together and teacher knows who has cheated from whom. assignmetns can be uploaded through normal computer readable text as well so youll have to figure that out. 
+
+4)for the teacher, there'll be a dashboard where she will have the aforementioned subjects. she can add topics inside the subjects individually with overview and requirements so the website knows how to grade the content uploaded by students. teacher can also specifiy total marks when creating the topics and their details. 
+
+5) teacher should also have access to the marks provided by the website and she should have the admin perms to publish the marks either in bulk, or individually . separately in each subject. the website HAS NO PERMISSION TO DISPLAY MARKS TO STUDENTS BY ITSELF - VERY IMPORTANT.
+
+6) the website system should also highlight where the student is wrong and why hes wrong and this should be visible to both teacher and student. 
+
+7) there should be a csv option where all of the marks of the students, along with registration number, rol number and name should be displayed and can be exported by the teacher . this option should be individually in all the subjects. so if 5 subjects, 5 options. 5 csvs.
+
+8) teacher should also have full ability to create or delete or update subjects. deleting subjects leads to deletion of marks and hence should be treated with caution. taecher should have a pop up saying "do you really wanna delete" and then have to manually type "delete". 
+
+
+
+
+Extra features I’d suggest:
+
+- Teacher override: edit AI marks and feedback before publishing.
+- Review queue: low-confidence OCR or grades go to the top.
+- Deadlines and late-submission flags, plus resubmission rules.
+- Notifications by email when marks are published.
+- More file types: DOCX, TXT, HEIC (iPhone photos) and multi-image uploads (one assignment as several photos), and a size limit per file.
+- Privacy: student data and handwriting are personal, so use encrypted storage, role-based access and a retention policy.
+
+- Handwriting OCR 70-90%: Computer reads typed text at ~99%. Handwriting is messy, so it misreads 10-30 words out of 100. Fix: if reading is unclear, website flags it yellow for teacher to check manually.

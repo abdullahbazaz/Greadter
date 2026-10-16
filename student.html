@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student — Greadter</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Greadter</div>
+  <nav><a href="index.html">Home</a></nav>
+</header>
+<main class="container">
+  <details class="sec" open>
+    <summary><span><span class="n">01</span>Subject</span><span class="chev">›</span></summary>
+    <div class="body"><div id="subjectGrid" class="rows"></div></div>
+  </details>
+
+  <details class="sec" open>
+    <summary><span><span class="n">02</span>Topic</span><span class="chev">›</span></summary>
+    <div class="body"><div id="topicList"></div></div>
+  </details>
+
+  <details class="sec" open>
+    <summary><span><span class="n">03</span>Upload</span><span class="chev">›</span></summary>
+    <div class="body">
+      <p class="lede" id="uploadTopicInfo"></p>
+      <input id="stuName" placeholder="Name" autocomplete="off">
+      <div class="formgrid">
+        <div><input id="stuRoll" placeholder="Roll no." autocomplete="off"></div>
+        <div><input id="stuReg" placeholder="Reg. no." autocomplete="off"></div>
+      </div>
+      <input id="stuDept" placeholder="Department" autocomplete="off">
+      <select id="topicSelect"></select>
+      <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.odt,.rtf">
+      <div class="drop" id="dropZone">Drop files here</div>
+      <div class="small muted">PDF, Word, PowerPoint, TXT only.</div>
+      <div id="fileList" class="small muted" style="margin-top:8px"></div>
+      <div id="uploadMsg"></div>
+      <div class="toolbar"><button class="btn primary" id="uploadBtn" disabled>Upload</button></div>
+    </div>
+  </details>
+
+  <details class="sec" open>
+    <summary><span><span class="n">04</span>Marks</span><span class="chev">›</span></summary>
+    <div class="body"><div id="marksheet"></div></div>
+  </details>
+
+  <details class="sec">
+    <summary><span><span class="n">05</span>Files</span><span class="chev">›</span></summary>
+    <div class="body"><div id="mySubs"></div></div>
+  </details>
+
+  <p class="note"><button class="linklike" id="resetBtn">Reset</button></p>
+</main>
+<script src="js/data.js"></script>
+<script src="js/student.js"></script>
+</body>
+</html>
