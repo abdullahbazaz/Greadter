@@ -17,7 +17,7 @@ NOT BUILT — left for backend implementation:
 8. Publish enforcement (CRITICAL): server must guarantee website NEVER displays marks to students unless teacher published; bulk vs individual publish per subject; unpublish; audit log.
 9. Teacher override: persist edited marks + feedback before publish (currently localStorage only).
 10. Review queue backend: ordering by OCR/grade confidence, assignment to reviewer, resolution workflow.
-11. Deadlines + late flags + resubmission rules enforced server-side (currently client-date comparison only).
+11. Deadlines + late flags enforced server-side (currently client-date comparison only).
 12. CSV: server-generated per-subject export (name, roll, reg, marks) with correct permissions; current CSV is client-side from mock data.
 13. Email notifications on publish (toggle UI exists; no mailer, templates, queue, or preferences backend).
 14. Privacy/security: encrypted storage at rest, role-based access control (student sees only own; teacher sees own subjects), retention/deletion policy, consent handling.

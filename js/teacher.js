@@ -50,8 +50,7 @@ $("addTopicBtn").onclick = ()=>{
   const title = $("topicTitle").value.trim(); if(!title){ alert("Enter topic title"); return; }
   db.topics.push({id:"t"+Date.now(), subjectId:sid, title,
     overview:$("topicOverview").value.trim()||"—", requirements:$("topicReq").value.trim()||"—",
-    totalMarks:+$("topicMarks").value||20, deadline:$("topicDeadline").value||todayISO(),
-    allowResubmit:$("topicResub").value==="yes"});
+    totalMarks:+$("topicMarks").value||20, deadline:$("topicDeadline").value||todayISO()});
   $("topicTitle").value=""; $("topicOverview").value=""; $("topicReq").value="";
   saveDB(db); renderAll();
 };
@@ -72,7 +71,7 @@ function renderTopics(){
       const d = document.createElement("div");
       d.className = "topic";
       d.innerHTML = `<h4>${esc(t.title)}</h4>
-        <p class="spec">${t.totalMarks} marks · ${esc(t.deadline||"")} · ${t.allowResubmit?'resubmit':'no resubmit'}</p>
+        <p class="spec">${t.totalMarks} marks · ${esc(t.deadline||"")}</p>
         <p class="small muted">${esc(t.overview)}</p><p class="small muted">${esc(t.requirements)}</p>
         <div class="toolbar"><button class="linklike" data-a="e">Edit</button><button class="linklike" data-a="d">Delete</button></div>`;
       d.querySelector('[data-a="d"]').onclick = ()=>{

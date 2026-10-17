@@ -29,7 +29,7 @@ function renderTopics(){
     const card = document.createElement("div");
     card.className = "topic" + (t.id===selectedTopic?" sel":"");
     card.innerHTML = `<h4>${esc(t.title)}</h4>
-      <p class="spec">${t.totalMarks} marks · ${esc(t.deadline||"—")}${late?' · past deadline':""} · ${t.allowResubmit?'resubmit':'no resubmit'}</p>
+      <p class="spec">${t.totalMarks} marks · ${esc(t.deadline||"—")}${late?' · past deadline':""}</p>
       <p class="small muted">${esc(t.overview)}</p>
       <p class="small muted">${esc(t.requirements)}</p>
       <button class="linklike">Select ›</button>`;
