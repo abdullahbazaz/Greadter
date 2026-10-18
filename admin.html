@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Greadter</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Greadter · Admin</div>
+  <nav><a href="index.html">Home</a><a href="admin.html" class="active">Admin</a></nav>
+</header>
+<main class="container">
+  <section class="hero" style="padding:32px 0 12px">
+    <h1 style="font-size:34px">Admin panel</h1>
+    <p class="small muted" style="margin-top:4px">Master link — not shown in public navigation.</p>
+  </section>
+
+  <details class="sec" open>
+    <summary><span><span class="n">01</span>Pending teachers</span><span class="chev">›</span></summary>
+    <div class="body">
+      <p class="small muted">Teachers who signed up but are not yet approved.</p>
+      <div id="pendingTeachers" class="rows"></div>
+    </div>
+  </details>
+
+  <details class="sec">
+    <summary><span><span class="n">02</span>Teachers &amp; sections</span><span class="chev">›</span></summary>
+    <div class="body">
+      <div id="teacherList"></div>
+    </div>
+  </details>
+
+  <details class="sec">
+    <summary><span><span class="n">03</span>Sections</span><span class="chev">›</span></summary>
+    <div class="body">
+      <div class="formgrid">
+        <div><input id="secName" placeholder="New section (e.g. Section A)"></div>
+      </div>
+      <div class="toolbar"><button class="btn primary" id="addSecBtn">Add section</button></div>
+      <div id="sectionList" class="rows"></div>
+    </div>
+  </details>
+
+  <details class="sec">
+    <summary><span><span class="n">04</span>Subjects</span><span class="chev">›</span></summary>
+    <div class="body">
+      <select id="subjSec"></select>
+      <input id="subjName" placeholder="New subject">
+      <input id="subjCode" placeholder="Code">
+      <div class="toolbar"><button class="btn primary" id="addSubjBtn">Add subject</button></div>
+      <div id="subjectList"></div>
+    </div>
+  </details>
+
+  <details class="sec">
+    <summary><span><span class="n">05</span>Student roster</span><span class="chev">›</span></summary>
+    <div class="body">
+      <p class="small muted">Upload CSV: reg_no, name, roll_no, dept, section_id</p>
+      <input type="file" id="rosterFile" accept=".csv">
+      <div class="toolbar"><button class="btn primary" id="importRoster">Import roster</button></div>
+      <div id="rosterList" class="rows"></div>
+    </div>
+  </details>
+
+  <details class="sec">
+    <summary><span><span class="n">06</span>Accounts</span><span class="chev">›</span></summary>
+    <div class="body">
+      <div id="accountList"></div>
+    </div>
+  </details>
+
+  <p class="note"><a class="link" href="index.html">← Back to home</a></p>
+</main>
+<script src="js/data.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

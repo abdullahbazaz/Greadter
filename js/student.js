@@ -1,7 +1,13 @@
 // Student workspace: subject select -> topic select -> upload -> dashboard (published only) + feedback.
-let db = loadDB();
+// Requires login.
+const db = loadDB();
+const session = getSession();
+if(!session || session.userType !== "student"){
+  location.href = "login.html?role=student";
+}
 let selectedSubject = db.subjects[0]?.id || null;
 let selectedTopic = null;
+let selectedCustomTopic = null;
 let stagedFiles = [];
 
 const $ = id => document.getElementById(id);
@@ -21,34 +27,113 @@ function renderSubjects(){
 }
 function renderTopics(){
   const box = $("topicList"); box.innerHTML = "";
+  const sub = db.subjects.find(s=>s.id===selectedSubject);
+  const mode = sub?.mode || "single";
   const topics = db.topics.filter(t=>t.subjectId===selectedSubject);
   const sel = $("topicSelect"); sel.innerHTML = "";
-  if(!topics.length){ box.innerHTML = `<div class="muted small">Empty.</div>`; }
-  topics.forEach(t=>{
+
+  const badge = document.createElement("div");
+  badge.className = "small muted";
+  badge.style.marginBottom = "8px";
+  badge.textContent = mode === "single" ? "Single topic mode" : mode === "multiple" ? "Choose a topic" : "Custom topics allowed";
+  box.appendChild(badge);
+
+  if(mode === "single"){
+    if(!topics.length){ box.innerHTML += `<div class="muted small">No topic yet. Ask your teacher.</div>`; return; }
+    if(!selectedTopic || !topics.some(t=>t.id===selectedTopic)) selectedTopic = topics[0].id;
+    const t = topics.find(x=>x.id===selectedTopic);
     const late = todayISO() > t.deadline;
     const card = document.createElement("div");
-    card.className = "topic" + (t.id===selectedTopic?" sel":"");
+    card.className = "topic sel";
     card.innerHTML = `<h4>${esc(t.title)}</h4>
       <p class="spec">${t.totalMarks} marks · ${esc(t.deadline||"—")}${late?' · past deadline':""}</p>
       <p class="small muted">${esc(t.overview)}</p>
-      <p class="small muted">${esc(t.requirements)}</p>
-      <button class="linklike">Select ›</button>`;
-    card.querySelector("button").onclick = ()=>{ selectedTopic=t.id; renderAll(); };
+      <p class="small muted">${esc(t.requirements)}</p>`;
     box.appendChild(card);
-    const o = document.createElement("option");
-    o.value=t.id; o.textContent=`${t.title} (${t.totalMarks} marks)`; sel.appendChild(o);
-  });
-  if(selectedTopic && topics.some(t=>t.id===selectedTopic)) sel.value = selectedTopic;
-  else { selectedTopic = topics[0]?.id || null; if(selectedTopic) sel.value = selectedTopic; }
-  sel.onchange = ()=>{ selectedTopic = sel.value; renderTopics(); renderUploadInfo(); };
+    sel.value = selectedTopic;
+  } else if(mode === "multiple"){
+    if(!topics.length){ box.innerHTML += `<div class="muted small">No topics yet.</div>`; }
+    topics.forEach(t=>{
+      const late = todayISO() > t.deadline;
+      const card = document.createElement("div");
+      card.className = "topic" + (t.id===selectedTopic?" sel":"");
+      card.innerHTML = `<h4>${esc(t.title)}</h4>
+        <p class="spec">${t.totalMarks} marks · ${esc(t.deadline||"—")}${late?' · past deadline':""}</p>
+        <p class="small muted">${esc(t.overview)}</p>
+        <p class="small muted">${esc(t.requirements)}</p>
+        <button class="linklike">Select ›</button>`;
+      card.querySelector("button").onclick = ()=>{ selectedTopic=t.id; selectedCustomTopic=null; renderAll(); };
+      box.appendChild(card);
+      const o = document.createElement("option");
+      o.value=t.id; o.textContent=`${t.title} (${t.totalMarks} marks)`; sel.appendChild(o);
+    });
+    if(selectedTopic && topics.some(t=>t.id===selectedTopic)) sel.value = selectedTopic;
+    else { selectedTopic = topics[0]?.id || null; if(selectedTopic) sel.value = selectedTopic; }
+    sel.onchange = ()=>{ selectedTopic = sel.value; selectedCustomTopic=null; renderTopics(); renderUploadInfo(); };
+  } else if(mode === "custom"){
+    if(topics.length){
+      const h = document.createElement("h4"); h.textContent = "Teacher topics"; box.appendChild(h);
+      topics.forEach(t=>{
+        const card = document.createElement("div");
+        card.className = "topic" + (t.id===selectedTopic?" sel":"");
+        card.innerHTML = `<h4>${esc(t.title)}</h4>
+          <p class="spec">${t.totalMarks} marks</p>
+          <p class="small muted">${esc(t.requirements)}</p>
+          <button class="linklike">Select ›</button>`;
+        card.querySelector("button").onclick = ()=>{ selectedTopic=t.id; selectedCustomTopic=null; renderAll(); };
+        box.appendChild(card);
+      });
+    }
+    if(selectedCustomTopic){
+      const ct = db.custom_topics.find(x=>x.id===selectedCustomTopic.id);
+      if(ct){
+        const active = document.createElement("div");
+        active.className = "topic sel";
+        active.innerHTML = `<h4>Your topic: ${esc(ct.title)}</h4>
+          <p class="spec">Custom topic · ${ct.summary.length} chars summary</p>
+          <p class="small muted">${esc(ct.summary)}</p>
+          <button class="linklike" id="clearCustomTopic">Use teacher topic instead</button>`;
+        active.querySelector("#clearCustomTopic").onclick = ()=>{ selectedCustomTopic=null; selectedTopic=null; renderAll(); };
+        box.appendChild(active);
+      }
+    }
+    const form = document.createElement("div");
+    form.className = "topic";
+    form.innerHTML = `<h4>Create your own topic</h4>
+      <input id="customTopicTitle" placeholder="Topic title">
+      <textarea id="customTopicSummary" rows="2" placeholder="Describe your assignment (AI grades against this)"></textarea>
+      <div class="toolbar"><button class="btn primary" id="createCustomTopicBtn">Create topic</button></div>`;
+    box.appendChild(form);
+    $("createCustomTopicBtn").onclick = ()=>{
+      const title = $("customTopicTitle").value.trim();
+      const summary = $("customTopicSummary").value.trim();
+      if(!title || !summary){ $("uploadMsg").innerHTML = `<div class="alert bad">Title and summary required.</div>`; return; }
+      const id = "ct"+Date.now();
+      db.custom_topics.push({id, subjectId:selectedSubject, studentRegNo:$("stuReg").value.trim(), title, summary, createdAt:todayISO()});
+      selectedCustomTopic = {id, title, summary};
+      selectedTopic = null;
+      $("customTopicTitle").value=""; $("customTopicSummary").value="";
+      saveDB(db); renderAll();
+    };
+  }
   renderUploadInfo();
 }
 function renderUploadInfo(){
-  const t = db.topics.find(x=>x.id===selectedTopic);
-  $("uploadTopicInfo").innerHTML = t
-    ? `${esc(t.title)} · ${t.totalMarks} · ${esc(t.deadline||"—")} ${todayISO()>t.deadline?'<span class="tag late">late</span>':""}`
-    : `Pick a topic.`;
-  $("uploadBtn").disabled = !t || stagedFiles.length===0;
+  const sub = db.subjects.find(s=>s.id===selectedSubject);
+  const mode = sub?.mode || "single";
+  let info = ""; let canUpload = false;
+  if(mode === "custom" && selectedCustomTopic){
+    info = `Custom topic: <b>${esc(selectedCustomTopic.title)}</b> · ${esc(selectedCustomTopic.summary.slice(0,60))}${selectedCustomTopic.summary.length>60?"…":""}`;
+    canUpload = stagedFiles.length > 0;
+  } else if(selectedTopic){
+    const t = db.topics.find(x=>x.id===selectedTopic);
+    info = t ? `${esc(t.title)} · ${t.totalMarks} · ${esc(t.deadline||"—")} ${todayISO()>t.deadline?'<span class="tag late">late</span>':""}` : "";
+    canUpload = t && stagedFiles.length > 0;
+  } else {
+    info = mode === "single" ? "Topic auto-selected." : "Pick a topic.";
+  }
+  $("uploadTopicInfo").innerHTML = info || `Pick a topic.`;
+  $("uploadBtn").disabled = !canUpload;
 }
 function stageFiles(fileList){
   $("uploadMsg").innerHTML = "";
@@ -68,19 +153,32 @@ function renderFileList(){
   $("fileList").querySelectorAll("a").forEach(a=>a.onclick=e=>{e.preventDefault(); stagedFiles.splice(+a.dataset.i,1); renderFileList(); renderUploadInfo();});
 }
 function doUpload(){
-  const t = db.topics.find(x=>x.id===selectedTopic);
-  if(!t || !stagedFiles.length) return;
+  const sub = db.subjects.find(s=>s.id===selectedSubject);
+  const mode = sub?.mode || "single";
+  let topicId = selectedTopic;
+  let topicType = "teacher";
+  if(mode === "custom" && selectedCustomTopic){
+    topicId = selectedCustomTopic.id;
+    topicType = "custom";
+  }
+  if(!topicId || !stagedFiles.length) return;
   const nm = $("stuName").value.trim(), rl = $("stuRoll").value.trim(),
         rg = $("stuReg").value.trim(), dp = $("stuDept").value.trim();
   if(!nm || !rl || !rg){ $("uploadMsg").innerHTML = `<div class="alert bad">Name, roll, reg. required.</div>`; return; }
   const now = todayISO();
+  let deadline = null;
+  if(topicType === "teacher"){
+    const tp = db.topics.find(x=>x.id===topicId);
+    deadline = tp?.deadline || null;
+  }
+  const late = deadline ? isLate(deadline, now) : false;
   const ids = [];
   stagedFiles.forEach((f,idx)=>{
     const id = "s"+Date.now()+idx; ids.push(id);
     db.submissions.push({
       id, studentName:nm, rollNo:rl, regNo:rg, dept:dp,
-      subjectId:t.subjectId, topicId:t.id, fileName:f.name, fileType:f.type, sizeKB:f.sizeKB,
-      submittedAt:now, late: isLate(t.deadline, now), ocrConfidence: 99,
+      subjectId:selectedSubject, topicId:topicId, topicType:topicType, fileName:f.name, fileType:f.type, sizeKB:f.sizeKB,
+      submittedAt:now, late, ocrConfidence: 99,
       aiMarks:null, teacherMarks:null, published:false,
       similarityGroup:null, similarityWith:[], similarityPct:0,
       feedback:[{type:"ok",text:"Uploaded. Awaiting grading and teacher review."}]
@@ -117,7 +215,9 @@ function renderMySubs(){
   if(!mine.length){ box.innerHTML = `<div class="muted small">Empty.</div>`; return; }
   mine.forEach(s=>{
     const sub = db.subjects.find(x=>x.id===s.subjectId)?.name || "?";
-    const top = db.topics.find(x=>x.id===s.topicId)?.title || "?";
+    const top = s.topicType === "custom"
+      ? (db.custom_topics.find(x=>x.id===s.topicId)?.title || "Custom topic")
+      : (db.topics.find(x=>x.id===s.topicId)?.title || "?");
     const d = document.createElement("div");
     d.className = "topic";
     d.innerHTML = `<h4>${esc(s.fileName)}</h4>
@@ -141,5 +241,12 @@ dz.onclick = ()=>$("fileInput").click();
 ["dragleave","drop"].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove("dragover");}));
 dz.addEventListener("drop", e=>stageFiles(e.dataTransfer.files));
 $("uploadBtn").onclick = doUpload;
-$("resetBtn").onclick = ()=>{ db = resetDB(); clearMine(); selectedSubject=db.subjects[0]?.id||null; selectedTopic=null; stagedFiles=[]; renderAll(); };
+$("resetBtn").onclick = ()=>{ db = resetDB(); clearMine(); selectedSubject=db.subjects[0]?.id||null; selectedTopic=null; selectedCustomTopic=null; stagedFiles=[]; renderAll(); };
 renderAll();
+
+// logout
+const logoutBtn = document.createElement("button");
+logoutBtn.className = "linklike";
+logoutBtn.textContent = "Log out";
+logoutBtn.onclick = ()=>{ clearSession(); location.href = "login.html"; };
+document.querySelector("main .container").appendChild(Object.assign(document.createElement("p"),{className:"note"})).appendChild(logoutBtn);

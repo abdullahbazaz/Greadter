@@ -1,26 +1,55 @@
-REMAINING FEATURES — NOT built in this static front-end (backend / server / database scope)
-Generated after building the static HTML/CSS/JS only. Auth pages intentionally omitted entirely.
-
-BUILT (static only):
-- index.html, student.html (subject select, topic select, upload UI with type/size validation, marksheet for published marks only, feedback highlight display)
-- teacher.html (subject CRUD with typed-delete confirm, topic CRUD with overview/requirements/total marks/deadline/resubmit, submissions table with filters, mock view/download, similarity group tags, review queue sorted by OCR confidence, teacher override editor, publish bulk/individual per subject, per-subject CSV export generated in-browser)
-- css/style.css, js/data.js (mock data + localStorage demo persistence), js/student.js, js/teacher.js
+REMAINING FEATURES — BACKEND / SERVER / DATABASE SCOPE
+Frontend (HTML/CSS/JS, mock/localStorage) is built for: login, signup, student workspace, teacher workspace, admin panel, three assignment modes. Everything below still needs Neon + Vercel API routes.
 
 NOT BUILT — left for backend implementation:
-1. Auth / accounts (DELIBERATELY OMITTED per instruction — no signup, login, password reset, session, or profile templates at all)
-2. Database + persistence: real users table (name, roll no., department, registration number), subjects, topics, submissions, marks, feedback, similarity edges. localStorage mock must be replaced.
-3. File storage: real upload/store/serve for PDF, PPTX, DOCX, TXT, JPG, JPEG, PNG, HEIC; multi-image assignments as one submission; 25MB limit enforced server-side; virus scan; HEIC conversion; bulk/selected download as real ZIP.
-4. Online file viewer: real PDF/image/office preview URLs (currently a text placeholder + demo .txt download).
-5. Handwriting OCR pipeline (70-90% accuracy problem): typed ~99% vs handwritten path, OCR engine, per-block confidence scores, yellow low-confidence flags persisted for teacher check.
-6. AI grading engine: grade from topic overview + requirements + total marks; low-confidence grade flagging; highlights of where/why student is wrong (currently static mock text).
-7. Similarity / plagiarism engine: pairwise comparison incl. OCR-ed handwriting + computer-readable text; similarity %; cheater grouping tags (e.g. A-B, C-E) + "who copied from whom"; teacher notification.
-8. Publish enforcement (CRITICAL): server must guarantee website NEVER displays marks to students unless teacher published; bulk vs individual publish per subject; unpublish; audit log.
-9. Teacher override: persist edited marks + feedback before publish (currently localStorage only).
-10. Review queue backend: ordering by OCR/grade confidence, assignment to reviewer, resolution workflow.
-11. Deadlines + late flags enforced server-side (currently client-date comparison only).
-12. CSV: server-generated per-subject export (name, roll, reg, marks) with correct permissions; current CSV is client-side from mock data.
-13. Email notifications on publish (toggle UI exists; no mailer, templates, queue, or preferences backend).
-14. Privacy/security: encrypted storage at rest, role-based access control (student sees only own; teacher sees own subjects), retention/deletion policy, consent handling.
-15. Validation/scale: roll/reg uniqueness, department master, pagination/search on large classes, rate limits, backups.
 
-To resume: implement backend API + DB first (items 2, 3, 8), then OCR (5) -> grading (6) -> similarity (7), then notifications/security (13, 14).
+1. Auth / accounts (frontend pages built — login.html, signup.html, auth.js mock). Backend needs:
+   - Neon tables: teachers, students, sections, section_teachers, enrollments, sessions
+   - /api/signup, /api/login, /api/logout, /api/me
+   - Password hashing (bcrypt), session cookies/JWT
+   - Email verification tokens (student signup)
+   - Teacher pending→active approval flow
+
+2. Database + persistence: real users table + all auth tables. localStorage mock must be replaced with Neon.
+
+3. File storage: real upload/store/serve for PDF, DOC, DOCX, PPT, PPTX, TXT, ODT, RTF. 25MB limit server-side. Virus scan.
+
+4. Online file viewer: real preview URLs.
+
+5. Handwriting OCR pipeline: typed vs handwritten path, per-block confidence, yellow flags.
+
+6. AI grading engine: grade from topic requirements OR student's custom-topic summary (Mode 3).
+
+7. Similarity / plagiarism engine: pairwise comparison, similarity %, cheater grouping tags.
+
+8. Publish enforcement (CRITICAL): server guarantees website NEVER displays marks to students unless teacher published. Bulk vs individual publish per subject. Unpublish. Audit log.
+
+9. Teacher override: persist edited marks + feedback before publish.
+
+10. Review queue backend: ordering by OCR/grade confidence.
+
+11. Deadlines + late flags enforced server-side.
+
+12. CSV: server-generated per-subject export with correct permissions.
+
+13. Email notifications on publish (admin approval email, verification email, publish email).
+
+14. Privacy/security: encrypted storage at rest, role-based access control (student sees only own section; teacher sees only assigned sections), retention/deletion policy.
+
+15. Validation/scale: roll/reg uniqueness, department master, pagination/search, rate limits, backups.
+
+16. Assignment modes (frontend UI built — mock/localStorage):
+    - Mode 1: Single topic for all students
+    - Mode 2: Multiple topics, student chooses one
+    - Mode 3: Custom student topics (title + summary; AI grades against summary)
+    Required backend: subjects.assignment_mode, custom_topics table, submissions.topic_type, API routes + teacher sessions + section ownership
+
+Admin panel (frontend built — admin.html, admin.js mock):
+- Approve/reject pending teachers
+- Assign teachers to sections
+- Create sections + join codes
+- Create subjects linked to sections
+- Import student roster CSV
+- Activate/deactivate accounts
+
+To resume: implement backend API + DB first (items 1, 2, 8, 16), then OCR (5) -> grading (6) -> similarity (7), then notifications/security (13, 14).

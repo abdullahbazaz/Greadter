@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log in — Greadter</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Greadter</div>
+  <nav><a href="index.html">Home</a><a href="login.html" class="active">Log in</a></nav>
+</header>
+<main class="container">
+  <section class="hero" style="padding:32px 0 12px">
+    <h1 style="font-size:34px">Log in</h1>
+  </section>
+
+  <details class="sec" open>
+    <summary><span>Student</span><span class="chev">›</span></summary>
+    <div class="body">
+      <input id="stuReg" placeholder="Registration no." autocomplete="off">
+      <input id="stuPass" type="password" placeholder="Password" autocomplete="current-password">
+      <div class="toolbar"><button class="btn primary" id="loginStudent">Log in</button></div>
+      <p class="small muted">New student? <a class="link" href="signup.html?role=student">Sign up →</a></p>
+    </div>
+  </details>
+
+  <details class="sec">
+    <summary><span>Teacher</span><span class="chev">›</span></summary>
+    <div class="body">
+      <input id="tchEmail" placeholder="University email" autocomplete="off">
+      <input id="tchPass" type="password" placeholder="Password" autocomplete="current-password">
+      <div class="toolbar"><button class="btn primary" id="loginTeacher">Log in</button></div>
+      <p class="small muted">New teacher? <a class="link" href="signup.html?role=teacher">Sign up →</a></p>
+    </div>
+  </details>
+
+  <p class="note"><a class="link" href="index.html">← Back to home</a></p>
+</main>
+<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
+<script>
+$("loginStudent").onclick = ()=>{
+  const r = attemptLogin($("stuReg").value, $("stuPass").value, "student");
+  if(r.ok){ location.href = r.redirect; } else { $("uploadMsg")?:""; alert(r.msg); }
+};
+$("loginTeacher").onclick = ()=>{
+  const r = attemptLogin($("tchEmail").value, $("tchPass").value, "teacher");
+  if(r.ok){ location.href = r.redirect; } else { alert(r.msg); }
+};
+</script>
+</body>
+</html>

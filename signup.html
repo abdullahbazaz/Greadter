@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign up — Greadter</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Greadter</div>
+  <nav><a href="index.html">Home</a><a href="signup.html" class="active">Sign up</a></nav>
+</header>
+<main class="container">
+  <section class="hero" style="padding:32px 0 12px">
+    <h1 style="font-size:34px">Sign up</h1>
+  </section>
+
+  <details class="sec" open>
+    <summary><span>Student</span><span class="chev">›</span></summary>
+    <div class="body">
+      <p class="small muted">Roll no. and registration no. must be unique. A confirmation email is sent before the account becomes active.</p>
+      <input id="sName" placeholder="Full name" autocomplete="off">
+      <div class="formgrid">
+        <div><input id="sRoll" placeholder="Roll no." autocomplete="off"></div>
+        <div><input id="sReg" placeholder="Registration no." autocomplete="off"></div>
+      </div>
+      <input id="sDept" placeholder="Department" autocomplete="off">
+      <input id="sEmail" type="email" placeholder="University email" autocomplete="off">
+      <input id="sPass" type="password" placeholder="Password" autocomplete="new-password">
+      <div class="toolbar"><button class="btn primary" id="signupStudent">Create account</button></div>
+      <p class="small muted">Already have an account? <a class="link" href="login.html?role=student">Log in →</a></p>
+    </div>
+  </details>
+
+  <details class="sec">
+    <summary><span>Teacher</span><span class="chev">›</span></summary>
+    <div class="body">
+      <p class="small muted">University email only. Account is created as <b>pending</b> and shows “awaiting admin approval” until an admin approves it.</p>
+      <input id="tName" placeholder="Full name" autocomplete="off">
+      <input id="tDept" placeholder="Department" autocomplete="off">
+      <input id="tEmail" type="email" placeholder="University email" autocomplete="off">
+      <input id="tPass" type="password" placeholder="Password" autocomplete="new-password">
+      <div class="toolbar"><button class="btn primary" id="signupTeacher">Create account</button></div>
+      <p class="small muted">Already have an account? <a class="link" href="login.html?role=teacher">Log in →</a></p>
+    </div>
+  </details>
+
+  <p class="note"><a class="link" href="index.html">← Back to home</a></p>
+</main>
+<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
+<script>
+$("signupStudent").onclick = ()=>{
+  const r = signupStudent({
+    name:$("sName").value, roll:$("sRoll").value, reg:$("sReg").value,
+    dept:$("sDept").value, email:$("sEmail").value, pass:$("sPass").value
+  });
+  if(r.ok){ alert(r.msg); location.href="login.html?role=student"; } else { alert(r.msg); }
+};
+$("signupTeacher").onclick = ()=>{
+  const r = signupTeacher({
+    name:$("tName").value, dept:$("tDept").value, email:$("tEmail").value, pass:$("tPass").value
+  });
+  if(r.ok){ alert(r.msg); location.href="login.html?role=teacher"; } else { alert(r.msg); }
+};
+</script>
+</body>
+</html>

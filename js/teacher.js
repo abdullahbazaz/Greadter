@@ -1,5 +1,10 @@
 // Teacher workspace: subjects/topics CRUD, submissions, similarity, review queue, publish, CSV.
-let db = loadDB();
+// Requires login.
+const db = loadDB();
+const session = getSession();
+if(!session || session.userType !== "teacher"){
+  location.href = "login.html?role=teacher";
+}
 let checked = new Set();
 let pendingDelete = null;
 const $ = id => document.getElementById(id);
@@ -14,7 +19,7 @@ function renderSubjects(){
     const n = db.topics.filter(t=>t.subjectId===s.id).length;
     const d = document.createElement("div");
     d.className = "rowline"; d.style.cursor = "default";
-    d.innerHTML = `<span class="t">${esc(s.name)} <span class="s">${esc(s.code||"")} · ${n}</span></span>
+    d.innerHTML = `<span class="t">${esc(s.name)} <span class="s">${esc(s.code||"")} · ${n} · mode: ${s.mode||"single"}</span></span>
       <span><button class="linklike" data-act="ren">Rename</button> · <button class="linklike" data-act="del">Delete</button></span>`;
     d.querySelector('[data-act="ren"]').onclick = ()=>{
       const v = prompt("New subject name:", s.name); if(!v) return;
@@ -31,7 +36,7 @@ function renderSubjects(){
 }
 $("addSubBtn").onclick = ()=>{
   const n = $("subName").value.trim(); if(!n){ alert("Enter subject name"); return; }
-  db.subjects.push({id:"sub"+Date.now(), name:n, code:$("subCode").value.trim()});
+  db.subjects.push({id:"sub"+Date.now(), name:n, code:$("subCode").value.trim(), mode:$("subMode").value||"single"});
   $("subName").value=""; $("subCode").value=""; saveDB(db); renderAll();
 };
 $("delCancel").onclick = ()=>$("delModal").classList.remove("show");
@@ -40,6 +45,7 @@ $("delConfirm").onclick = ()=>{
   db.subjects = db.subjects.filter(s=>s.id!==pendingDelete);
   const tIds = db.topics.filter(t=>t.subjectId===pendingDelete).map(t=>t.id);
   db.topics = db.topics.filter(t=>t.subjectId!==pendingDelete);
+  db.custom_topics = db.custom_topics.filter(ct=>ct.subjectId!==pendingDelete);
   db.submissions = db.submissions.filter(s=>!tIds.includes(s.topicId));
   pendingDelete=null; $("delModal").classList.remove("show"); saveDB(db); renderAll();
 };
@@ -224,6 +230,13 @@ $("csvBtn").onclick = ()=>{
 };
 
 $("resetBtn").onclick = ()=>{ db = resetDB(); checked.clear(); renderAll(); };
+
+// logout
+const logoutBtn = document.createElement("button");
+logoutBtn.className = "linklike";
+logoutBtn.textContent = "Log out";
+logoutBtn.onclick = ()=>{ clearSession(); location.href = "login.html"; };
+document.querySelector("main .container").appendChild(Object.assign(document.createElement("p"),{className:"note"})).appendChild(logoutBtn);
 
 function renderAll(){ renderSubjects(); renderTopics(); renderSubs(); renderSim(); renderReview(); renderPublish(); }
 renderAll();
