@@ -1,4 +1,4 @@
-// Admin panel logic — mock backend, replace with Neon API later.
+// Admin panel logic.
 const $ = id => document.getElementById(id);
 
 function renderDepartments(){

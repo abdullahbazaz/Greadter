@@ -188,7 +188,7 @@ function doUpload(){
       submittedAt:now, late, ocrConfidence: 99,
       aiMarks:null, teacherMarks:null, published:false,
       similarityGroup:null, similarityWith:[], similarityPct:0,
-      feedback:[{type:"ok",text:"Uploaded. Awaiting grading and teacher review."}]
+      feedback:[]
     });
   });
   saveDB(db); addMine(ids); stagedFiles=[]; renderFileList();

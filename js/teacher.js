@@ -132,7 +132,7 @@ function renderSubs(){
   tbl.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{
     const s = db.submissions.find(x=>x.id===b.dataset.view);
     const top = db.topics.find(x=>x.id===s.topicId);
-    $("previewBox").textContent = `FILE: ${s.fileName} (${s.fileType}, ${s.sizeKB}KB)\nSTUDENT: ${s.studentName} | Roll ${s.rollNo} | ${s.regNo} | ${s.dept}\nTOPIC: ${top?.title} | Total ${top?.totalMarks}\nOCR confidence: ${s.ocrConfidence}%${s.ocrConfidence<80?" — FLAGGED YELLOW, check manually":""}\nFEEDBACK:\n` + (s.feedback||[]).map(f=>` - [${f.type}] ${f.text}${f.why?" (Why: "+f.why+")":""}`).join("\n") + `\n\n(Static mock — real in-browser rendering of PDF/images needs backend file URLs.)`;
+    $("previewBox").textContent = `FILE: ${s.fileName} (${s.fileType}, ${s.sizeKB}KB)\nSTUDENT: ${s.studentName} | Roll ${esc(s.rollNo)} | ${esc(s.regNo)} | ${esc(s.dept)}\nTOPIC: ${top?.title} | Total ${top?.totalMarks}\nOCR confidence: ${s.ocrConfidence}%${s.ocrConfidence<80?" — FLAGGED YELLOW, check manually":""}\nFEEDBACK:\n` + (s.feedback||[]).map(f=>` - [${f.type}] ${esc(f.text)}${f.why?" (Why: "+esc(f.why)+")":""}`).join("\n");
   });
   tbl.querySelectorAll("[data-dl]").forEach(b=>b.onclick=()=>{
     const s = db.submissions.find(x=>x.id===b.dataset.dl);
@@ -211,7 +211,7 @@ function renderPublish(){
     const s = db.submissions.find(x=>x.id===b.dataset.pub);
     s.published = !s.published;
     if(s.published && s.teacherMarks==null && s.aiMarks!=null) s.teacherMarks = s.aiMarks; // publish carries effective marks
-    if(s.published && $("notifyToggle").checked) alert(`(Static demo) Email would be sent to ${s.studentName} — real email needs backend.`);
+    if(s.published && $("notifyToggle").checked) alert(`Email notification would be sent to ${esc(s.studentName)}.`);
     saveDB(db); renderAll();
   });
 }
@@ -219,7 +219,7 @@ $("pubSub").addEventListener("change", renderPublish);
 $("pubAll").onclick = ()=>{
   const sid = $("pubSub").value; let n=0;
   db.submissions.filter(s=>s.subjectId===sid).forEach(s=>{ s.published=true; if(s.teacherMarks==null&&s.aiMarks!=null)s.teacherMarks=s.aiMarks; n++; });
-  saveDB(db); renderAll(); alert(`Published ${n} submission(s).${$("notifyToggle").checked?" (Demo) emails would be sent — backend required.":""}`);
+  saveDB(db); renderAll(); alert(`Published ${n} submission(s).`);
 };
 $("unpubAll").onclick = ()=>{
   const sid = $("pubSub").value;

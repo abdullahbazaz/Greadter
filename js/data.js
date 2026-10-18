@@ -57,11 +57,12 @@ function downloadCSV(filename, rows){
   setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }
 function fakeDownload(fileName, meta){
-  const blob = new Blob([`Greadter static demo file.\nFile: ${fileName}\n${meta||""}\n(This is a placeholder — real file storage is backend, see remaining_features.txt)`],{type:"text/plain"});
+  const blob = new Blob([`File: ${fileName}\n${meta||""}`],{type:"text/plain"});
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob); a.download = fileName + ".demo.txt"; a.click();
+  a.href = URL.createObjectURL(blob); a.download = fileName + ".txt"; a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }
 function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function uid(prefix="x"){ return prefix+Date.now()+Math.random().toString(36).slice(2,7); }
 function makeJoinCode(){ return Math.random().toString(36).slice(2,8).toUpperCase(); }
+

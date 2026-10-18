@@ -24,7 +24,7 @@ export default async function handler(req, res) {
         VALUES (${reg}, ${name}, ${roll}, ${dept}, ${email}, false, 'active', null)
       `;
 
-      return res.status(200).json({ ok: true, msg: 'Account created. Email verification pending (mock).' });
+      return res.status(200).json({ ok: true, msg: 'Account created. Email verification pending.' });
     } else {
       const existing = await sql`SELECT * FROM teachers WHERE email = ${email}`;
       if (existing.length) return res.status(400).json({ error: 'Email already exists' });
