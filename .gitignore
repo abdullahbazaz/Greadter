@@ -1,8 +1,8 @@
-
 *.txt
+!remaining_features.txt
 
+node_modules/
+package-lock.json
 
-
-# OS junk
 .DS_Store
 Thumbs.db
