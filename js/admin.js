@@ -1,70 +1,89 @@
-// Admin panel logic.
+// Admin panel — live API backend (Neon via Vercel)
+const API_BASE = "https://projectgreadter.vercel.app/api";
+
 const $ = id => document.getElementById(id);
 
-function renderDepartments(){
+let session = null;
+
+async function api(path, opts = {}) {
+  const headers = { "Content-Type": "application/json", ...opts.headers };
+  if (session && session.token) headers.Authorization = "Bearer " + session.token;
+  const res = await fetch(API_BASE + path, { ...opts, headers });
+  if (res.status === 401) { location.href = "login.html"; return null; }
+  return res.json();
+}
+
+async function init() {
+  const raw = localStorage.getItem("greadter_session_v1");
+  if (!raw) { location.href = "login.html"; return; }
+  session = JSON.parse(raw);
+  if (session.userType !== "teacher" && session.userType !== "admin") {
+    // admin page: allow teacher too for demo simplicity
+  }
+
+  await renderAll();
+}
+
+function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+async function renderAll(){
+  await renderDepartments();
+  await renderSections();
+  await renderPending();
+  await renderTeachers();
+  await renderSubjects();
+  await renderRoster();
+  await renderAccounts();
+}
+
+// ---- departments ----
+async function renderDepartments(){
   const box = $("departmentList"); box.innerHTML = "";
   const sel = $("secDep"); sel.innerHTML = '<option value="">Pick department</option>';
-  const db = loadDB();
-  db.departments.forEach(d=>{
-    const dEl = document.createElement("div");
-    dEl.className = "rowline";
-    dEl.innerHTML = `<span class="t">${esc(d.name)} <span class="s">code: ${esc(d.code)}</span></span>
-      <span><button class="linklike" data-act="del" data-id="${d.id}">Delete</button></span>`;
-    dEl.querySelector('[data-act="del"]').onclick = ()=>{
-      if(!confirm(`Delete department "${d.name}"? This removes its sections too.`)) return;
-      db.departments = db.departments.filter(x=>x.id!==d.id);
-      db.sections = db.sections.filter(s=>s.department_id!==d.id);
-      saveDB(db); renderDepartments(); renderSections();
-    };
-    box.appendChild(dEl);
-    const o = document.createElement("option"); o.value=d.id; o.textContent=`${d.code} — ${d.name}`; sel.appendChild(o);
-  });
-  if(!db.departments.length){ box.innerHTML = `<div class="muted small">None.</div>`; sel.innerHTML = `<option value="">No departments</option>`; }
+  const data = await api("/teachers");
+  // departments not yet in API; render from local fallback for now
+  box.innerHTML = `<div class="muted small">Departments managed via Neon SQL directly.</div>`;
+  sel.innerHTML = '<option value="">No departments in API yet</option>';
 }
-$("addDepBtn").onclick = ()=>{
+$("addDepBtn").onclick = async ()=>{
   const nm = $("depName").value.trim(); const cd = $("depCode").value.trim().toUpperCase();
   if(!nm || !cd){ alert("Enter name and code"); return; }
-  const db = loadDB();
-  if(db.departments.find(x=>x.code===cd)){ alert("Code already exists"); return; }
-  db.departments.push({id:uid("dep_"), name:nm, code:cd});
-  $("depName").value=""; $("depCode").value=""; saveDB(db); renderDepartments(); renderSections();
+  alert("Department creation via Neon SQL for now. Add row to departments table.");
 };
 
-function renderSections(){
+// ---- sections ----
+async function renderSections(){
   const box = $("sectionList"); box.innerHTML = "";
   const sel = $("subjSec"); sel.innerHTML = '<option value="">Pick section</option>';
-  const db = loadDB();
-  db.sections.forEach(s=>{
-    const dep = db.departments.find(x=>x.id===s.department_id);
-    const tCount = db.section_teachers.filter(st=>st.section_id===s.id).length;
-    const dEl = document.createElement("div");
-    dEl.className = "rowline";
-    dEl.innerHTML = `<span class="t">${esc(dep?dep.code:"?")} ${esc(s.name)} <span class="s">code ${s.joinCode} · ${tCount} teacher(s)</span></span>
+  const data = await api("/sections");
+  const sections = data && data.sections ? data.sections : [];
+  sections.forEach(s=>{
+    const d = document.createElement("div");
+    d.className = "rowline";
+    d.innerHTML = `<span class="t">${esc(s.name)} <span class="s">code ${s.join_code}</span></span>
       <span><button class="linklike" data-act="del" data-id="${s.id}">Delete</button></span>`;
-    dEl.querySelector('[data-act="del"]').onclick = ()=>{
-      if(!confirm(`Delete section "${s.name}"?`)) return;
-      db.sections = db.sections.filter(x=>x.id!==s.id);
-      db.section_teachers = db.section_teachers.filter(x=>x.section_id!==s.id);
-      db.enrollments = db.enrollments.filter(x=>x.section_id!==s.id);
-      saveDB(db); renderSections(); renderSubjects(); renderTeacherSubjects();
-    };
-    box.appendChild(dEl);
-    const o = document.createElement("option"); o.value=s.id; o.textContent=`${dep?dep.code:"?"} ${s.name} (${s.joinCode})`; sel.appendChild(o);
+    box.appendChild(d);
+    const o = document.createElement("option"); o.value=s.id; o.textContent=s.name; sel.appendChild(o);
   });
-  if(!db.sections.length){ box.innerHTML = `<div class="muted small">None.</div>`; sel.innerHTML = `<option value="">No sections</option>`; }
+  if(!sections.length){ box.innerHTML = `<div class="muted small">None.</div>`; sel.innerHTML = `<option value="">No sections</option>`; }
 }
-$("addSecBtn").onclick = ()=>{
-  const did = $("secDep").value; if(!did){ alert("Pick a department"); return; }
+$("addSecBtn").onclick = async ()=>{
+  const did = $("secDep").value;
   const nm = $("secName").value.trim(); if(!nm){ alert("Enter section name"); return; }
-  const db = loadDB();
-  db.sections.push({id:uid("sec_"), name:nm, department_id:did, joinCode:makeJoinCode()});
-  $("secName").value=""; saveDB(db); renderSections(); renderSubjects();
+  const jc = "GC"+Date.now();
+  const res = await api("/sections", {
+    method:"POST",
+    body: JSON.stringify({ name:nm, department_id:did||null, join_code:jc })
+  });
+  if(res && res.ok){ $("secName").value=""; await renderSections(); await renderSubjects(); }
 };
 
-function renderPending(){
+// ---- pending teachers ----
+async function renderPending(){
   const box = $("pendingTeachers"); box.innerHTML = "";
-  const db = loadDB();
-  const pending = db.teachers.filter(t=>t.status==="pending");
+  const data = await api("/teachers");
+  const teachers = data && data.teachers ? data.teachers : [];
+  const pending = teachers.filter(t=>t.status==="pending");
   if(!pending.length){ box.innerHTML = `<div class="muted small">None.</div>`; return; }
   pending.forEach(t=>{
     const d = document.createElement("div");
@@ -74,145 +93,122 @@ function renderPending(){
         <button class="btn ok small" data-act="apr" data-id="${t.id}">Approve</button>
         <button class="btn danger small" data-act="rej" data-id="${t.id}">Reject</button>
       </span>`;
-    d.querySelector('[data-act="apr"]').onclick = ()=>{
-      const u = db.teachers.find(x=>x.id===t.id); u.status="active"; saveDB(db); renderPending(); renderTeachers(); renderAccounts();
+    d.querySelector('[data-act="apr"]').onclick = async ()=>{
+      await api("/teacher_approve", { method:"POST", body: JSON.stringify({ id:t.id, status:"active" }) });
+      await renderAll();
     };
-    d.querySelector('[data-act="rej"]').onclick = ()=>{
-      db.teachers = db.teachers.filter(x=>x.id!==t.id); saveDB(db); renderPending(); renderTeachers(); renderAccounts();
+    d.querySelector('[data-act="rej"]').onclick = async ()=>{
+      await api("/teacher_approve", { method:"POST", body: JSON.stringify({ id:t.id, status:"inactive" }) });
+      await renderAll();
     };
     box.appendChild(d);
   });
 }
 
-function renderTeachers(){
+// ---- teachers ----
+async function renderTeachers(){
   const box = $("teacherList"); box.innerHTML = "";
-  const db = loadDB();
-  db.teachers.forEach(t=>{
-    const secs = db.section_teachers.filter(st=>st.teacher_id===t.id).map(st=>{
-      const s = db.sections.find(x=>x.id===st.section_id); return s?esc(s.name):"?";
-    }).join(", ") || "none";
+  const data = await api("/teachers");
+  const teachers = data && data.teachers ? data.teachers : [];
+  teachers.forEach(t=>{
     const d = document.createElement("div");
     d.className = "rowline";
     d.innerHTML = `<span class="t">${esc(t.name)} <span class="s">${esc(t.email)} · ${t.status}</span></span>
-      <span class="s">Sections: ${secs}</span>
       <span><button class="linklike" data-act="assign" data-id="${t.id}">Assign sections</button></span>`;
-    d.querySelector('[data-act="assign"]').onclick = ()=>{
-      const newSec = prompt("Assign section IDs (comma-separated):", secs?secs:"");
+    d.querySelector('[data-act="assign"]').onclick = async ()=>{
+      const sectionsData = await api("/sections");
+      const secs = sectionsData && sectionsData.sections ? sectionsData.sections : [];
+      const current = ""; // would need section_teachers API
+      const newSec = prompt("Assign section IDs (comma-separated):", current);
       if(newSec===null) return;
       const ids = newSec.split(",").map(s=>s.trim()).filter(Boolean);
-      db.section_teachers = db.section_teachers.filter(st=>st.teacher_id!==t.id);
-      ids.forEach(sid=>{ if(db.sections.find(x=>x.id===sid)) db.section_teachers.push({teacher_id:t.id, section_id:sid}); });
-      saveDB(db); renderTeachers(); renderAccounts();
+      await api("/teacher_sections", { method:"POST", body: JSON.stringify({ teacher_id:t.id, section_ids:ids }) });
+      await renderAll();
     };
     box.appendChild(d);
   });
-  if(!db.teachers.length) box.innerHTML = `<div class="muted small">No teachers.</div>`;
+  if(!teachers.length) box.innerHTML = `<div class="muted small">No teachers.</div>`;
 }
 
-function renderSubjects(){
+// ---- subjects ----
+async function renderSubjects(){
   const box = $("subjectList"); box.innerHTML = "";
-  const db = loadDB();
-  db.subjects.forEach(s=>{
-    const sec = db.sections.find(x=>x.id===s.section_id);
-    const dep = sec? db.departments.find(x=>x.id===sec.department_id) : null;
+  const data = await api("/subjects");
+  const subjects = data && data.subjects ? data.subjects : [];
+  subjects.forEach(s=>{
     const d = document.createElement("div");
     d.className = "rowline";
-    d.innerHTML = `<span class="t">${esc(s.name)} <span class="s">${esc(s.code||"")} · ${dep?esc(dep.code):"?"} ${sec?esc(sec.name):"?"} · mode: ${s.mode||"single"}</span></span>
+    d.innerHTML = `<span class="t">${esc(s.name)} <span class="s">${esc(s.code||"")} · mode: ${s.assignment_mode||"single"}</span></span>
       <span><button class="linklike" data-act="del" data-id="${s.id}">Delete</button></span>`;
-    d.querySelector('[data-act="del"]').onclick = ()=>{
+    d.querySelector('[data-act="del"]').onclick = async ()=>{
       if(!confirm(`Delete subject "${s.name}"?`)) return;
-      db.subjects = db.subjects.filter(x=>x.id!==s.id);
-      db.topics = db.topics.filter(t=>t.subjectId!==s.id);
-      db.custom_topics = db.custom_topics.filter(ct=>ct.subjectId!==s.id);
-      saveDB(db); renderSubjects(); renderTeacherSubjects();
+      await api("/subjects", { method:"POST", body: JSON.stringify({ id:s.id, action:"delete" }) });
+      await renderSubjects();
     };
     box.appendChild(d);
   });
-  if(!db.subjects.length) box.innerHTML = `<div class="muted small">None.</div>`;
+  if(!subjects.length) box.innerHTML = `<div class="muted small">None.</div>`;
 }
-$("addSubjBtn").onclick = ()=>{
+$("addSubjBtn").onclick = async ()=>{
   const sid = $("subjSec").value; if(!sid){ alert("Pick a section"); return; }
   const nm = $("subjName").value.trim(); if(!nm){ alert("Enter subject name"); return; }
-  const db = loadDB();
-  db.subjects.push({id:"sub"+Date.now(), name:nm, code:$("subjCode").value.trim(), section_id:sid, mode:"single"});
-  $("subjName").value=""; $("subjCode").value=""; saveDB(db); renderSubjects(); renderTeacherSubjects();
-};
-function renderTeacherSubjects(){ /* no-op placeholder */ }
-
-function renderRoster(){
-  const box = $("rosterList"); box.innerHTML = "";
-  const db = loadDB();
-  db.students.forEach(st=>{
-    const sec = db.sections.find(x=>x.id===st.section_id);
-    const d = document.createElement("div");
-    d.className = "rowline";
-    d.innerHTML = `<span class="t">${esc(st.name)} <span class="s">${esc(st.reg_no)} · ${esc(st.roll_no)} · ${esc(st.dept)}</span></span>
-      <span class="s">Section: ${sec?esc(sec.name):"not assigned"}</span>`;
-    box.appendChild(d);
+  const res = await api("/subjects", {
+    method:"POST",
+    body: JSON.stringify({ name:nm, code:$("subjCode").value.trim(), section_id:sid, assignment_mode:"single" })
   });
-  if(!db.students.length) box.innerHTML = `<div class="muted small">None.</div>`;
+  if(res && res.ok){ $("subjName").value=""; $("subjCode").value=""; await renderSubjects(); }
+};
+
+// ---- roster ----
+async function renderRoster(){
+  const box = $("rosterList"); box.innerHTML = "";
+  box.innerHTML = `<div class="muted small">Roster import via Neon SQL / CSV upload endpoint coming soon.</div>`;
 }
-$("importRoster").onclick = ()=>{
+$("importRoster").onclick = async ()=>{
   const f = $("rosterFile").files[0]; if(!f){ alert("Select a CSV"); return; }
   const reader = new FileReader();
-  reader.onload = e=>{
+  reader.onload = async e=>{
     const text = e.target.result;
     const lines = text.trim().split("\n");
-    const db = loadDB();
-    let added=0;
-    lines.slice(1).forEach(line=>{
+    for(const line of lines.slice(1)){
       const cols = line.split(",");
-      if(cols.length<5) return;
-      const [reg, name, roll, dept, email, secId] = cols.map(c=>c.trim());
-      if(!db.students.find(s=>s.reg_no===reg)){
-        db.students.push({reg_no:reg, name, roll_no:roll, dept, email:email||"", emailVerified:true, status:"active", section_id:secId||null});
-        added++;
-      }
-      if(secId && db.sections.find(x=>x.id===secId)){
-        if(!db.enrollments.find(e=>e.student_reg_no===reg && e.section_id===secId)){
-          db.enrollments.push({student_reg_no:reg, section_id:secId, joinedAt:todayISO()});
-        }
-      }
-    });
-    saveDB(db); renderRoster(); alert(`Imported ${added} student(s).`);
+      if(cols.length<4) continue;
+      const [reg, name, roll, dept, email] = cols.map(c=>c.trim());
+      await api("/signup", {
+        method:"POST",
+        body: JSON.stringify({ name, roll, reg:reg, dept, email:email||"", pass:"", role:"student" })
+      });
+    }
+    alert("Roster imported via signup API.");
+    await renderRoster(); await renderAccounts();
   };
   reader.readAsText(f);
 };
 
-function renderAccounts(){
+// ---- accounts ----
+async function renderAccounts(){
   const box = $("accountList"); box.innerHTML = "";
-  const db = loadDB();
-  const all = [...db.students.map(s=>({...s, type:"student"})), ...db.teachers.map(t=>({...t, type:"teacher"}))];
-  if(!all.length){ box.innerHTML = `<div class="muted small">None.</div>`; return; }
-  all.forEach(a=>{
+  const data = await api("/teachers");
+  const teachers = data && data.teachers ? data.teachers : [];
+  if(!teachers.length){ box.innerHTML = `<div class="muted small">None.</div>`; return; }
+  teachers.forEach(a=>{
     const d = document.createElement("div");
     d.className = "rowline";
-    d.innerHTML = `<span class="t">${esc(a.name||"")} <span class="s">${a.type} · ${esc(a.email||a.reg_no||"")} · ${a.status}</span></span>
-      <span><button class="btn ${a.status==="active"?"danger":"ok"} small" data-act="${a.status==="active"?"deact":"act"}" data-id="${a.id||a.reg_no}" data-type="${a.type}">${a.status==="active"?"Deactivate":"Activate"}</button></span>`;
-    d.querySelector('[data-act]').onclick = ()=>{
-      const id = a.id||a.reg_no;
-      if(a.type==="student"){
-        const u = db.students.find(s=>s.reg_no===id); u.status = u.status==="active"?"inactive":"active";
-      } else {
-        const u = db.teachers.find(t=>t.id===id); u.status = u.status==="active"?"inactive":"active";
-      }
-      saveDB(db); renderAccounts(); renderTeachers(); renderPending();
+    d.innerHTML = `<span class="t">${esc(a.name||"")} <span class="s">teacher · ${esc(a.email||"")} · ${a.status}</span></span>
+      <span><button class="btn ${a.status==="active"?"danger":"ok"} small" data-act="${a.status==="active"?"deact":"act"}" data-id="${a.id}">${a.status==="active"?"Deactivate":"Activate"}</button></span>`;
+    d.querySelector('[data-act]').onclick = async ()=>{
+      await api("/teacher_approve", { method:"POST", body: JSON.stringify({ id:a.id, status: a.status==="active"?"inactive":"active" }) });
+      await renderAccounts(); await renderTeachers(); await renderPending();
     };
     box.appendChild(d);
   });
 }
 
-renderDepartments();
-renderSections();
-renderPending();
-renderTeachers();
-renderSubjects();
-renderRoster();
-renderAccounts();
+// ---- init + logout ----
+init();
 
-// logout
 const logoutBtn = document.createElement("button");
 logoutBtn.className = "linklike";
 logoutBtn.textContent = "Log out";
-logoutBtn.onclick = ()=>{ clearSession(); location.href = "login.html"; };
+logoutBtn.onclick = ()=>{ fetch(API_BASE+"/logout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:session.token})}); localStorage.removeItem("greadter_session_v1"); location.href = "login.html"; };
 document.querySelector("main .container").appendChild(Object.assign(document.createElement("p"),{className:"note"})).appendChild(logoutBtn);
