@@ -1,16 +1,16 @@
 REMAINING FEATURES — BACKEND / SERVER / DATABASE SCOPE
-Frontend (HTML/CSS/JS, mock/localStorage) is built for: login, signup, student workspace, teacher workspace, admin panel, three assignment modes. Everything below still needs Neon + Vercel API routes.
+Frontend (HTML/CSS/JS, mock/localStorage) is built for: login, signup, student workspace, teacher workspace, admin panel, three assignment modes, department → section hierarchy. Everything below still needs Neon + Vercel API routes.
 
 NOT BUILT — left for backend implementation:
 
 1. Auth / accounts (frontend pages built — login.html, signup.html, auth.js mock). Backend needs:
-   - Neon tables: teachers, students, sections, section_teachers, enrollments, sessions
+   - Neon tables: teachers, students, sections, section_teachers, enrollments, sessions, departments
    - /api/signup, /api/login, /api/logout, /api/me
    - Password hashing (bcrypt), session cookies/JWT
    - Email verification tokens (student signup)
    - Teacher pending→active approval flow
 
-2. Database + persistence: real users table + all auth tables. localStorage mock must be replaced with Neon.
+2. Database + persistence: all auth tables. localStorage mock must be replaced with Neon.
 
 3. File storage: real upload/store/serve for PDF, DOC, DOCX, PPT, PPTX, TXT, ODT, RTF. 25MB limit server-side. Virus scan.
 
@@ -51,5 +51,10 @@ Admin panel (frontend built — admin.html, admin.js mock):
 - Create subjects linked to sections
 - Import student roster CSV
 - Activate/deactivate accounts
+
+Section hierarchy (frontend mock built — parseRoll/findSectionForRoll exist but not enforced):
+- departments: code + name
+- sections: name + department_id + join_code (no roll range — arbitrary student counts per section)
+- students auto-enrolled by section_id on roster import or admin assignment
 
 To resume: implement backend API + DB first (items 1, 2, 8, 16), then OCR (5) -> grading (6) -> similarity (7), then notifications/security (13, 14).

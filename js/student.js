@@ -10,13 +10,20 @@ let selectedTopic = null;
 let selectedCustomTopic = null;
 let stagedFiles = [];
 
+// section-aware: student only sees subjects in their enrolled sections
+let mySectionIds = [];
+if(session && session.userType === "student"){
+  mySectionIds = db.enrollments.filter(e=>e.student_reg_no===session.userId).map(e=>e.section_id);
+}
+
 const $ = id => document.getElementById(id);
 
 function renderSubjects(){
   const g = $("subjectGrid"); g.innerHTML = "";
-  if(!db.subjects.length){ g.innerHTML = `<div class="muted small">Empty.</div>`; return; }
-  if(!db.subjects.some(s=>s.id===selectedSubject)) selectedSubject = db.subjects[0].id;
-  db.subjects.forEach(s=>{
+  let subs = db.subjects.filter(s=> mySectionIds.length===0 || mySectionIds.includes(s.section_id));
+  if(!subs.length){ g.innerHTML = `<div class="muted small">You are not enrolled in any sections yet.</div>`; return; }
+  if(!subs.some(s=>s.id===selectedSubject)) selectedSubject = subs[0].id;
+  subs.forEach(s=>{
     const count = db.topics.filter(t=>t.subjectId===s.id).length;
     const d = document.createElement("div");
     d.className = "rowline" + (s.id===selectedSubject?" sel":"");

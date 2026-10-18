@@ -35,7 +35,7 @@ function signupStudent({name, roll, reg, dept, email, pass}){
   if(db.students.find(s => s.email === email)) return {ok:false, msg:"Email already exists."};
   db.students.push({
     reg_no: reg, name, roll_no: roll, dept, email,
-    emailVerified: false, status: "active", createdAt: todayISO()
+    emailVerified: false, status: "active", section_id: null, createdAt: todayISO()
   });
   saveDB(db);
   // mock email verification token

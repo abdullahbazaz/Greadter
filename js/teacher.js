@@ -15,7 +15,15 @@ function renderSubjects(){
   const sel = $("topicSub"); sel.innerHTML = "";
   const fSub = $("fSub"); const curF = fSub.value; fSub.innerHTML = `<option value="">All subjects</option>`;
   const pubSub = $("pubSub"); const curP = pubSub.value; pubSub.innerHTML = "";
-  db.subjects.forEach(s=>{
+
+  // section-aware: teacher only sees subjects in their assigned sections
+  let mySectionIds = [];
+  if(session && session.userType === "teacher"){
+    mySectionIds = db.section_teachers.filter(st=>st.teacher_id===session.userId).map(st=>st.section_id);
+  }
+
+  let subs = db.subjects.filter(s=> mySectionIds.length===0 || mySectionIds.includes(s.section_id));
+  subs.forEach(s=>{
     const n = db.topics.filter(t=>t.subjectId===s.id).length;
     const d = document.createElement("div");
     d.className = "rowline"; d.style.cursor = "default";
