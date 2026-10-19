@@ -16,10 +16,25 @@
     <p>Choose your role to continue.</p>
   </section>
 
-  <div class="hero-actions" style="justify-content:center; gap:24px; margin-top:32px">
-    <a class="btn primary" href="role.html?role=student" style="padding:16px 40px; font-size:18px">Student</a>
-    <a class="btn" href="role.html?role=teacher" style="padding:16px 40px; font-size:18px">Teacher</a>
-  </div>
+  <details class="sec" id="sec-student">
+    <summary><span><span class="n">01</span>Student</span><span class="chev">›</span></summary>
+    <div class="body">
+      <div class="hero-actions" style="justify-content:center; gap:16px; margin-top:16px">
+        <a class="btn primary" href="login.html?role=student" style="padding:14px 36px; font-size:16px">Student Login</a>
+        <a class="btn" href="signup.html?role=student" style="padding:14px 36px; font-size:16px">Student Signup</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="sec" id="sec-teacher">
+    <summary><span><span class="n">02</span>Teacher</span><span class="chev">›</span></summary>
+    <div class="body">
+      <div class="hero-actions" style="justify-content:center; gap:16px; margin-top:16px">
+        <a class="btn primary" href="login.html?role=teacher" style="padding:14px 36px; font-size:16px">Teacher Login</a>
+        <a class="btn" href="signup.html?role=teacher" style="padding:14px 36px; font-size:16px">Teacher Signup</a>
+      </div>
+    </div>
+  </details>
 </main>
 </body>
 </html>
