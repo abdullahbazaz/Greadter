@@ -13,11 +13,28 @@
 <main class="container">
   <section class="hero">
     <h1>Assignment grading.</h1>
-    <div class="hero-actions">
-      <a class="btn primary" href="login.html">Log in</a>
-      <a class="btn" href="signup.html">Sign up</a>
-    </div>
+    <p>Choose your role to continue.</p>
   </section>
+
+  <details class="sec" open>
+    <summary><span><span class="n">01</span>Student</span><span class="chev">›</span></summary>
+    <div class="body">
+      <div class="hero-actions" style="justify-content:center; gap:12px; margin-top:12px">
+        <a class="btn primary" href="login.html?role=student">Log in</a>
+        <a class="btn" href="signup.html?role=student">Sign up</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="sec">
+    <summary><span><span class="n">02</span>Teacher</span><span class="chev">›</span></summary>
+    <div class="body">
+      <div class="hero-actions" style="justify-content:center; gap:12px; margin-top:12px">
+        <a class="btn primary" href="login.html?role=teacher">Log in</a>
+        <a class="btn" href="signup.html?role=teacher">Sign up</a>
+      </div>
+    </div>
+  </details>
 </main>
 </body>
 </html>

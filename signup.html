@@ -16,7 +16,7 @@
     <h1 style="font-size:34px">Sign up</h1>
   </section>
 
-  <details class="sec" open>
+  <details class="sec" id="sec-student">
     <summary><span>Student</span><span class="chev">›</span></summary>
     <div class="body">
       <p class="small muted">Roll no. and registration no. must be unique. A confirmation email is sent before the account becomes active.</p>
@@ -38,7 +38,7 @@
     </div>
   </details>
 
-  <details class="sec">
+  <details class="sec" id="sec-teacher">
     <summary><span>Teacher</span><span class="chev">›</span></summary>
     <div class="body">
       <p class="small muted">University email only. Account is created as <b>pending</b> and shows “awaiting admin approval” until an admin approves it.</p>
@@ -69,6 +69,17 @@ $("signupTeacher").onclick = ()=>{
   });
   if(r.ok){ alert(r.msg); location.href="login.html?role=teacher"; } else { alert(r.msg); }
 };
+
+// Auto-open selected role section
+const params = new URLSearchParams(location.search);
+const role = params.get('role');
+if(role === 'student'){
+  document.getElementById('sec-student').open = true;
+  document.getElementById('sec-teacher').open = false;
+} else if(role === 'teacher'){
+  document.getElementById('sec-teacher').open = true;
+  document.getElementById('sec-student').open = false;
+}
 </script>
 </body>
 </html>

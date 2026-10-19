@@ -16,7 +16,7 @@
     <h1 style="font-size:34px">Log in</h1>
   </section>
 
-  <details class="sec" open>
+  <details class="sec" id="sec-student">
     <summary><span>Student</span><span class="chev">›</span></summary>
     <div class="body">
       <input id="stuReg" placeholder="Registration no." autocomplete="off">
@@ -26,7 +26,7 @@
     </div>
   </details>
 
-  <details class="sec">
+  <details class="sec" id="sec-teacher">
     <summary><span>Teacher</span><span class="chev">›</span></summary>
     <div class="body">
       <input id="tchEmail" placeholder="University email" autocomplete="off">
@@ -49,6 +49,17 @@ $("loginTeacher").onclick = ()=>{
   const r = attemptLogin($("tchEmail").value, $("tchPass").value, "teacher");
   if(r.ok){ location.href = r.redirect; } else { alert(r.msg); }
 };
+
+// Auto-open selected role section
+const params = new URLSearchParams(location.search);
+const role = params.get('role');
+if(role === 'student'){
+  document.getElementById('sec-student').open = true;
+  document.getElementById('sec-teacher').open = false;
+} else if(role === 'teacher'){
+  document.getElementById('sec-teacher').open = true;
+  document.getElementById('sec-student').open = false;
+}
 </script>
 </body>
 </html>
