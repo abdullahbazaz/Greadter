@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login — Greadter</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Greadter</div>
+  <nav><a href="index.html">Home</a></nav>
+</header>
+<main class="container">
+  <section class="hero" style="padding:32px 0 12px">
+    <h1 style="font-size:34px">Admin Login</h1>
+  </section>
+
+  <div class="hero-actions" style="justify-content:center; margin-top:32px">
+    <div style="max-width:360px; margin:0 auto">
+      <input id="admEmail" placeholder="Admin email" autocomplete="off">
+      <input id="admPass" type="password" placeholder="Password" autocomplete="current-password">
+      <div class="toolbar" style="justify-content:center"><button class="btn primary" id="loginAdmin">Log in</button></div>
+    </div>
+  </div>
+</main>
+<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
+<script>
+$("loginAdmin").onclick = async ()=>{
+  const r = await loginAdmin($("admEmail").value, $("admPass").value);
+  if(r.ok){ location.href = r.redirect; } else { alert(r.msg); }
+};
+</script>
+</body>
+</html>

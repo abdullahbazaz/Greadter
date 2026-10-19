@@ -35,15 +35,22 @@ if(role === 'teacher'){
   sub.textContent = 'Choose how to continue.';
   btnLogin.textContent = 'Teacher Login';
   btnSignup.textContent = 'Teacher Signup';
-  btnLogin.href = 'login.html?role=teacher';
-  btnSignup.href = 'signup.html?role=teacher';
+  btnLogin.href = 'teacher-login.html';
+  btnSignup.href = 'teacher-signup.html';
+} else if(role === 'admin'){
+  title.textContent = 'Admin';
+  sub.textContent = 'Choose how to continue.';
+  btnLogin.textContent = 'Admin Login';
+  btnSignup.textContent = 'Admin Signup';
+  btnLogin.href = 'admin-login.html';
+  btnSignup.href = 'admin-signup.html';
 } else {
   title.textContent = 'Student';
   sub.textContent = 'Choose how to continue.';
   btnLogin.textContent = 'Student Login';
   btnSignup.textContent = 'Student Signup';
-  btnLogin.href = 'login.html?role=student';
-  btnSignup.href = 'signup.html?role=student';
+  btnLogin.href = 'student-login.html';
+  btnSignup.href = 'student-signup.html';
 }
 </script>
 </body>
