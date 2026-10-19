@@ -14,26 +14,65 @@
 <main class="container">
   <section class="hero" style="padding:32px 0 12px">
     <h1 style="font-size:34px">Sign up</h1>
+    <p id="roleSub" style="margin-top:8px; font-size:16px;"></p>
   </section>
 
-  <details class="sec" id="sec-student">
+  <details class="sec" id="sec-student" open>
     <summary><span>Student</span><span class="chev">›</span></summary>
     <div class="body">
-      <p class="small muted">Roll no. and registration no. must be unique. A confirmation email is sent before the account becomes active.</p>
-      <input id="sName" placeholder="Full name" autocomplete="off">
-      <div class="formgrid">
-        <div><input id="sRoll" placeholder="Roll no." autocomplete="off"></div>
-        <div><input id="sReg" placeholder="Registration no." autocomplete="off"></div>
-      </div>
-      <select id="sDept">
+      <p class="small muted">Fill every field in order. Sections are verified against the uploaded class roster.</p>
+
+      <!-- Step 1: Registration number -->
+      <label>Registration no. <span class="small muted">(type first)</span></label>
+      <input id="sReg" placeholder="e.g. REG001" autocomplete="off">
+
+      <!-- Step 2: Department -->
+      <label>Department</label>
+      <select id="sDept" disabled>
+        <option value="">Select department</option>
         <option value="CSE">CSE</option>
         <option value="ME">ME</option>
         <option value="ECE">ECE</option>
         <option value="CE">CE</option>
       </select>
-      <input id="sEmail" type="email" placeholder="University email" autocomplete="off">
+
+      <!-- Step 3: Year -->
+      <label>Admission year</label>
+      <select id="sYear" disabled>
+        <option value="">Select year</option>
+        <option value="24">2024</option>
+        <option value="25">2025</option>
+        <option value="26">2026</option>
+      </select>
+
+      <!-- Step 4: Roll number -->
+      <label>Roll no.</label>
+      <div class="roll-wrapper">
+        <span id="rollPrefix" class="roll-prefix"></span>
+        <input id="sRoll" type="text" placeholder="101" disabled maxlength="10" autocomplete="off">
+      </div>
+
+      <!-- Step 5: Section -->
+      <label>Section</label>
+      <select id="sSection" disabled>
+        <option value="">Select section</option>
+        <option value="A">A</option>
+        <option value="B">B</option>
+        <option value="C">C</option>
+      </select>
+
+      <!-- Step 6: Remaining details -->
+      <label>Full name</label>
+      <input id="sName" placeholder="Full name" autocomplete="off">
+
+      <label>University email</label>
+      <input id="sEmail" type="email" placeholder="name@college.edu" autocomplete="off">
+
+      <label>Password</label>
       <input id="sPass" type="password" placeholder="Password" autocomplete="new-password">
-      <div class="toolbar"><button class="btn primary" id="signupStudent">Create account</button></div>
+
+      <div id="verifyMsg" class="small muted" style="margin-top:8px"></div>
+      <div class="toolbar"><button class="btn primary" id="signupStudent" disabled>Create account</button></div>
       <p class="small muted">Already have an account? <a class="link" href="login.html?role=student">Log in →</a></p>
     </div>
   </details>
@@ -56,30 +95,129 @@
 <script src="js/data.js"></script>
 <script src="js/auth.js"></script>
 <script>
-$("signupStudent").onclick = ()=>{
-  const r = signupStudent({
-    name:$("sName").value, roll:$("sRoll").value, reg:$("sReg").value,
-    dept:$("sDept").value, email:$("sEmail").value, pass:$("sPass").value
-  });
-  if(r.ok){ alert(r.msg); location.href="login.html?role=student"; } else { alert(r.msg); }
-};
-$("signupTeacher").onclick = ()=>{
-  const r = signupTeacher({
-    name:$("tName").value, dept:$("tDept").value, email:$("tEmail").value, pass:$("tPass").value
-  });
-  if(r.ok){ alert(r.msg); location.href="login.html?role=teacher"; } else { alert(r.msg); }
-};
-
-// Auto-open selected role section
 const params = new URLSearchParams(location.search);
 const role = params.get('role');
 if(role === 'student'){
   document.getElementById('sec-student').open = true;
   document.getElementById('sec-teacher').open = false;
+  document.getElementById('roleSub').textContent = 'Student account';
 } else if(role === 'teacher'){
   document.getElementById('sec-teacher').open = true;
   document.getElementById('sec-student').open = false;
+  document.getElementById('roleSub').textContent = 'Teacher account';
 }
+
+// --- Student signup field dependency logic ---
+const sReg = document.getElementById('sReg');
+const sDept = document.getElementById('sDept');
+const sYear = document.getElementById('sYear');
+const sRoll = document.getElementById('sRoll');
+const sSection = document.getElementById('sSection');
+const rollPrefix = document.getElementById('rollPrefix');
+const verifyMsg = document.getElementById('verifyMsg');
+const signupBtn = document.getElementById('signupStudent');
+
+const deptPrefixMap = {
+  CSE: 'CSE',
+  ME: 'ME',
+  ECE: 'ECE',
+  CE: 'CE'
+};
+
+function updateRollPrefix(){
+  const dept = sDept.value;
+  const year = sYear.value;
+  if(dept && year){
+    rollPrefix.textContent = deptPrefixMap[dept] + '-' + year + '-';
+    sRoll.disabled = false;
+    sRoll.focus();
+  } else {
+    rollPrefix.textContent = '';
+    sRoll.disabled = true;
+    sRoll.value = '';
+  }
+}
+
+function canSubmit(){
+  return !!(
+    sReg.value.trim() &&
+    sDept.value &&
+    sYear.value &&
+    sRoll.value.trim() &&
+    sSection.value &&
+    sName.value.trim() &&
+    sEmail.value.trim() &&
+    sPass.value.trim()
+  );
+}
+
+function checkForm(){
+  signupBtn.disabled = !canSubmit();
+  verifyMsg.textContent = '';
+}
+
+sReg.addEventListener('input', ()=>{
+  sDept.disabled = !sReg.value.trim();
+  if(!sReg.value.trim()){
+    sDept.value=''; sYear.value=''; sRoll.value=''; sSection.value='';
+    rollPrefix.textContent='';
+    sDept.disabled=true; sYear.disabled=true; sRoll.disabled=true; sSection.disabled=true;
+  }
+  checkForm();
+});
+
+sDept.addEventListener('change', ()=>{
+  sYear.disabled = !sDept.value;
+  if(!sDept.value){
+    sYear.value=''; sRoll.value=''; sSection.value='';
+    rollPrefix.textContent='';
+    sYear.disabled=true; sRoll.disabled=true; sSection.disabled=true;
+  } else {
+    sYear.disabled=false;
+  }
+  updateRollPrefix();
+  checkForm();
+});
+
+sYear.addEventListener('change', updateRollPrefix);
+sRoll.addEventListener('input', checkForm);
+sSection.addEventListener('change', checkForm);
+sName.addEventListener('input', checkForm);
+sEmail.addEventListener('input', checkForm);
+sPass.addEventListener('input', checkForm);
+
+signupBtn.addEventListener('click', async (e)=>{
+  e.preventDefault();
+  const reg = sReg.value.trim();
+  const dept = sDept.value;
+  const year = sYear.value;
+  const rollSuffix = sRoll.value.trim();
+  const roll = dept + '-' + year + '-' + rollSuffix;
+  const section = sSection.value;
+  const name = sName.value.trim();
+  const email = sEmail.value.trim();
+  const pass = sPass.value.trim();
+
+  // Mock CSV verification message — backend must parse the CSV file here
+  verifyMsg.textContent = `Verifying ${reg} against ${dept.toLowerCase()} ${2000+parseInt(year)} ${section}.csv roster...`;
+  verifyMsg.style.color = '#6e6e73';
+
+  // Simulate backend delay
+  await new Promise(r=>setTimeout(r, 800));
+
+  const r = await signupStudent({
+    name, roll, reg, dept, email, pass, section, year
+  });
+  if(r.ok){
+    verifyMsg.textContent = r.msg;
+    verifyMsg.style.color = '#1d8127';
+    signupBtn.disabled = true;
+    setTimeout(()=>location.href="login.html?role=student", 1200);
+  } else {
+    verifyMsg.textContent = r.msg;
+    verifyMsg.style.color = '#b00020';
+  }
+});
 </script>
 </body>
 </html>

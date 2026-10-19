@@ -1,5 +1,5 @@
 *.txt
-!remaining_features.txt
+*.csv
 
 node_modules/
 package-lock.json

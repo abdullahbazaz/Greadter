@@ -35,12 +35,12 @@ async function attemptLogin(regOrEmail, password, role){
 }
 
 // ---- signup ----
-async function signupStudent({name, roll, reg, dept, email, pass}){
+async function signupStudent({name, roll, reg, dept, email, pass, section, year}){
   try{
     const res = await fetch(`${API_BASE}/signup`, {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ name, roll, reg, dept, email, pass, role: "student" })
+      body: JSON.stringify({ name, roll, reg, dept, email, pass, role: "student", section, year })
     });
     const data = await res.json();
 
