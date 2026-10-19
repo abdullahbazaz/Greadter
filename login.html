@@ -36,6 +36,15 @@
     </div>
   </details>
 
+  <details class="sec" id="sec-admin">
+    <summary><span>Admin</span><span class="chev">›</span></summary>
+    <div class="body">
+      <input id="admEmail" placeholder="Admin email" autocomplete="off">
+      <input id="admPass" type="password" placeholder="Password" autocomplete="current-password">
+      <div class="toolbar"><button class="btn primary" id="loginAdmin">Log in</button></div>
+    </div>
+  </details>
+
   <p class="note"><a class="link" href="index.html">← Back to home</a></p>
 </main>
 <script src="js/data.js"></script>
@@ -49,6 +58,10 @@ $("loginTeacher").onclick = ()=>{
   const r = attemptLogin($("tchEmail").value, $("tchPass").value, "teacher");
   if(r.ok){ location.href = r.redirect; } else { alert(r.msg); }
 };
+$("loginAdmin").onclick = async ()=>{
+  const r = await loginAdmin($("admEmail").value, $("admPass").value);
+  if(r.ok){ location.href = r.redirect; } else { alert(r.msg); }
+};
 
 // Auto-open selected role section
 const params = new URLSearchParams(location.search);
@@ -56,9 +69,15 @@ const role = params.get('role');
 if(role === 'student'){
   document.getElementById('sec-student').open = true;
   document.getElementById('sec-teacher').open = false;
+  document.getElementById('sec-admin').open = false;
 } else if(role === 'teacher'){
   document.getElementById('sec-teacher').open = true;
   document.getElementById('sec-student').open = false;
+  document.getElementById('sec-admin').open = false;
+} else if(role === 'admin'){
+  document.getElementById('sec-admin').open = true;
+  document.getElementById('sec-student').open = false;
+  document.getElementById('sec-teacher').open = false;
 }
 </script>
 </body>

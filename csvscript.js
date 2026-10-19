@@ -18,8 +18,6 @@ async function importRoster() {
     const filePath = path.join(process.cwd(), file);
     const text = fs.readFileSync(filePath, 'utf-8');
     const lines = text.trim().split('\n');
-    
-    // Skip header line
     const rows = lines.slice(1).map(line => {
       const [reg_no, name, roll_no, dept, email] = line.split(',').map(c => c.trim());
       return { reg_no, name, roll_no, dept, email, section_key: sectionKey };

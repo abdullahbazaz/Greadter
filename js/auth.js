@@ -73,7 +73,54 @@ async function signupTeacher({name, dept, email, pass}){
   }
 }
 
+async function loginAdmin(email, password){
+  try{
+    const res = await fetch(`${API_BASE}/login`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ email, password, role: "admin" })
+    });
+    const data = await res.json();
+
+    if(!data.ok){
+      return {ok:false, msg: data.error || "Login failed"};
+    }
+
+    setSession({
+      token: data.token,
+      userId: data.user.id,
+      userType: data.user.role,
+      name: data.user.name
+    });
+
+    return {ok:true, redirect: "admin.html"};
+  }catch(e){
+    return {ok:false, msg: "Network error — is the backend deployed?"};
+  }
+}
+
+async function signupAdmin({name, dept, email, pass}){
+  try{
+    const res = await fetch(`${API_BASE}/signup`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ name, dept, email, pass, role: "admin" })
+    });
+    const data = await res.json();
+
+    if(!data.ok){
+      return {ok:false, msg: data.error || "Signup failed"};
+    }
+
+    return {ok:true, msg: data.msg || "Admin account created."};
+  }catch(e){
+    return {ok:false, msg: "Network error — is the backend deployed?"};
+  }
+}
+
 // expose to window for inline handlers
 window.attemptLogin = attemptLogin;
 window.signupStudent = signupStudent;
 window.signupTeacher = signupTeacher;
+window.loginAdmin = loginAdmin;
+window.signupAdmin = signupAdmin;

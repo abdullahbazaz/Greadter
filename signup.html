@@ -90,6 +90,18 @@
     </div>
   </details>
 
+  <details class="sec" id="sec-admin">
+    <summary><span>Admin</span><span class="chev">›</span></summary>
+    <div class="body">
+      <p class="small muted">Create an admin account.</p>
+      <input id="aName" placeholder="Full name" autocomplete="off">
+      <input id="aDept" placeholder="Department" autocomplete="off">
+      <input id="aEmail" type="email" placeholder="Admin email" autocomplete="off">
+      <input id="aPass" type="password" placeholder="Password" autocomplete="new-password">
+      <div class="toolbar"><button class="btn primary" id="signupAdmin">Create account</button></div>
+    </div>
+  </details>
+
   <p class="note"><a class="link" href="index.html">← Back to home</a></p>
 </main>
 <script src="js/data.js"></script>
@@ -100,11 +112,18 @@ const role = params.get('role');
 if(role === 'student'){
   document.getElementById('sec-student').open = true;
   document.getElementById('sec-teacher').open = false;
+  document.getElementById('sec-admin').open = false;
   document.getElementById('roleSub').textContent = 'Student account';
 } else if(role === 'teacher'){
   document.getElementById('sec-teacher').open = true;
   document.getElementById('sec-student').open = false;
+  document.getElementById('sec-admin').open = false;
   document.getElementById('roleSub').textContent = 'Teacher account';
+} else if(role === 'admin'){
+  document.getElementById('sec-admin').open = true;
+  document.getElementById('sec-student').open = false;
+  document.getElementById('sec-teacher').open = false;
+  document.getElementById('roleSub').textContent = 'Admin account';
 }
 
 // --- Student signup field dependency logic ---
@@ -218,6 +237,16 @@ signupBtn.addEventListener('click', async (e)=>{
     verifyMsg.style.color = '#b00020';
   }
 });
+
+$("signupAdmin").onclick = async ()=>{
+  const r = await signupAdmin({
+    name: $("aName").value.trim(),
+    dept: $("aDept").value.trim(),
+    email: $("aEmail").value.trim(),
+    pass: $("aPass").value.trim()
+  });
+  if(r.ok){ alert(r.msg); location.href="login.html?role=admin"; } else { alert(r.msg); }
+};
 </script>
 </body>
 </html>

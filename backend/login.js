@@ -35,7 +35,7 @@ export default async function handler(req, res) {
         token,
         user: { id: user.reg_no, name: user.name, regNo: user.reg_no, role: 'student' }
       });
-    } else {
+    } else if (role === 'teacher') {
       const [user] = await sql`
         SELECT * FROM teachers WHERE email = ${email}
       `;
@@ -53,6 +53,21 @@ export default async function handler(req, res) {
         ok: true,
         token,
         user: { id: user.id, name: user.name, email: user.email, role: 'teacher' }
+      });
+    } else if (role === 'admin') {
+      const [user] = await sql`SELECT * FROM admins WHERE email = ${email}`;
+      if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+
+      const token = 'sess_' + Date.now() + Math.random().toString(36).slice(2, 10);
+      await sql`
+        INSERT INTO sessions (token, user_id, user_type, expires_at)
+        VALUES (${token}, ${user.id}, 'admin', ${new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()})
+      `;
+
+      return res.status(200).json({
+        ok: true,
+        token,
+        user: { id: user.id, name: user.name, email: user.email, role: 'admin' }
       });
     }
   } catch (e) {

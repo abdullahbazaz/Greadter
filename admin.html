@@ -84,6 +84,12 @@
 
   <p class="note"><a class="link" href="index.html">← Back to home</a></p>
 </main>
+<script>
+const raw = localStorage.getItem("greadter_session_v1");
+if(!raw){ location.href = "login.html?role=admin"; }
+const sess = JSON.parse(raw);
+if(sess.userType !== "admin"){ location.href = "login.html?role=admin"; }
+</script>
 <script src="js/data.js"></script>
 <script src="js/admin.js"></script>
 </body>

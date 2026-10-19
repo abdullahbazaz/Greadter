@@ -9,15 +9,15 @@ async function api(path, opts = {}) {
   const headers = { "Content-Type": "application/json", ...opts.headers };
   if (session && session.token) headers.Authorization = "Bearer " + session.token;
   const res = await fetch(API_BASE + path, { ...opts, headers });
-  if (res.status === 401) { location.href = "login.html"; return null; }
+  if (res.status === 401) { location.href = "login.html?role=admin"; return null; }
   return res.json();
 }
 
 async function init() {
   const raw = localStorage.getItem("greadter_session_v1");
-  if (!raw) { location.href = "login.html"; return; }
+  if (!raw) { location.href = "login.html?role=admin"; return; }
   session = JSON.parse(raw);
-  if (session.userType !== "teacher" && session.userType !== "admin") {
+  if (session.userType !== "admin") {
     // admin page: allow teacher too for demo simplicity
   }
 

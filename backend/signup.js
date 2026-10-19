@@ -29,7 +29,7 @@ export default async function handler(req, res) {
       `;
 
       return res.status(200).json({ ok: true, msg: `Account created. Awaiting section verification against ${dept.toLowerCase()} ${fullYear} ${section}.csv roster.` });
-    } else {
+    } else if (role === 'teacher') {
       const existing = await sql`SELECT * FROM teachers WHERE email = ${email}`;
       if (existing.length) return res.status(400).json({ error: 'Email already exists' });
 
@@ -39,6 +39,16 @@ export default async function handler(req, res) {
       `;
 
       return res.status(200).json({ ok: true, msg: 'Account created as pending. Awaiting admin approval.' });
+    } else if (role === 'admin') {
+      const existing = await sql`SELECT * FROM admins WHERE email = ${email}`;
+      if (existing.length) return res.status(400).json({ error: 'Email already exists' });
+
+      await sql`
+        INSERT INTO admins (id, name, dept, email, password_hash)
+        VALUES (${'adm_' + Date.now()}, ${name}, ${dept}, ${email}, ${password})
+      `;
+
+      return res.status(200).json({ ok: true, msg: 'Admin account created.' });
     }
   } catch (e) {
     console.error(e);
