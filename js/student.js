@@ -172,8 +172,7 @@ function stageFiles(fileList){
     const mb = f.size/1024/1024;
     if(!ALLOWED_EXT.includes(ext)){ $("uploadMsg").innerHTML += `<div class="alert bad">Rejected ${esc(f.name)}: .${esc(ext)} not allowed.</div>`; return; }
     if(mb > MAX_MB){ $("uploadMsg").innerHTML += `<div class="alert bad">Rejected ${esc(f.name)}: exceeds ${MAX_MB}MB limit.</div>`; return; }
-    stagedFiles.push({name:f.name, type:ext, sizeKB:Math.round(f.size/1024)});
-  });
+stagedFiles.push({file:f, name:f.name, type:ext, sizeKB:Math.round(f.size/1024)});  });
   renderFileList(); renderUploadInfo();
 }
 
@@ -202,18 +201,24 @@ async function doUpload(){
   const late = false; // server-side can compute properly later
 
   for(const f of stagedFiles){
-    await api("/submissions", {
-      method: "POST",
-      body: JSON.stringify({
-        subject_id: selectedSubject, topicId: topicId, topicType: topicType,
-        student_name: nm, roll_no: rl, reg_no: rg, dept: dp,
-        file_name: f.name, file_type: f.type, size_kb: f.sizeKB,
-        submitted_at: now, late: late,
-        ai_marks: null, teacher_marks: null, published: false,
-        similarity_group: null, similarity_pct: null, feedback: []
-      })
-    });
-  }
+  const b = await window.blobPut(
+    `submissions/${Date.now()}-${f.name}`,
+    f.file,
+    { access: 'private', contentType: f.file.type || 'application/octet-stream' }
+  );
+  await api("/submissions", {
+    method: "POST",
+    body: JSON.stringify({
+      subject_id: selectedSubject, topicId: topicId, topicType: topicType,
+      student_name: nm, roll_no: rl, reg_no: rg, dept: dp,
+      file_name: f.name, file_type: f.type, size_kb: f.sizeKB,
+      file_url: b.url,
+      submitted_at: now, late: late,
+      ai_marks: null, teacher_marks: null, published: false,
+      similarity_group: null, similarity_pct: null, feedback: []
+    })
+  });
+}
   saveMine(); stagedFiles=[]; renderFileList();
   $("uploadMsg").innerHTML = `<div class="alert ok">Uploaded.</div>`;
   renderAll();

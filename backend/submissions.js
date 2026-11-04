@@ -30,23 +30,23 @@ export default async function handler(req, res) {
     try {
       const {
         subject_id, topic_id, topic_type, student_name, roll_no, reg_no,
-        dept, file_name, file_type, size_kb, submitted_at, late,
+        dept, file_name, file_type, size_kb, file_url, submitted_at, late,
         ai_marks, teacher_marks, published, similarity_group, similarity_pct, feedback
       } = req.body;
 
       const id = 's' + Date.now() + Math.random().toString(36).slice(2, 7);
-      await sql`
-        INSERT INTO submissions (
-          id, subject_id, topic_id, topic_type, student_name, roll_no, reg_no,
-          dept, file_name, file_type, size_kb, submitted_at, late,
-          ai_marks, teacher_marks, published, similarity_group, similarity_pct, feedback
-        ) VALUES (
-          ${id}, ${subject_id}, ${topic_id}, ${topic_type}, ${student_name}, ${roll_no}, ${reg_no},
-          ${dept}, ${file_name}, ${file_type}, ${size_kb}, ${submitted_at}, ${late},
-          ${ai_marks || null}, ${teacher_marks || null}, ${published || false},
-          ${similarity_group || null}, ${similarity_pct || null}, ${JSON.stringify(feedback || [])}
-        )
-      `;
+     await sql`
+  INSERT INTO submissions (
+    id, subject_id, topic_id, topic_type, student_name, roll_no, reg_no,
+    dept, file_name, file_type, size_kb, file_url, submitted_at, late,
+    ai_marks, teacher_marks, published, similarity_group, similarity_pct, feedback
+  ) VALUES (
+    ${id}, ${subject_id}, ${topic_id}, ${topic_type}, ${student_name}, ${roll_no}, ${reg_no},
+    ${dept}, ${file_name}, ${file_type}, ${size_kb}, ${file_url}, ${submitted_at}, ${late},
+    ${ai_marks || null}, ${teacher_marks || null}, ${published || false},
+    ${similarity_group || null}, ${similarity_pct || null}, ${JSON.stringify(feedback || [])}
+  )
+`;
       return res.status(200).json({ ok: true, id });
     } catch (e) {
       console.error(e);
