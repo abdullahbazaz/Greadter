@@ -19,7 +19,6 @@
   <div class="hero-actions" style="justify-content:center; margin-top:24px">
     <div style="max-width:360px; margin:0 auto">
       <input id="aName" placeholder="Full name" autocomplete="off">
-      <input id="aDept" placeholder="Department" autocomplete="off">
       <input id="aEmail" type="email" placeholder="Admin email" autocomplete="off">
       <input id="aPass" type="password" placeholder="Password" autocomplete="new-password">
       <div class="toolbar" style="justify-content:center"><button class="btn primary" id="signupAdmin">Create account</button></div>
@@ -29,13 +28,13 @@
 <script src="js/data.js"></script>
 <script src="js/auth.js"></script>
 <script>
-const aName = $("aName"), aDept = $("aDept"), aEmail = $("aEmail"), aPass = $("aPass"), signupAdminBtn = $("signupAdmin");
-function checkSignup(){ signupAdminBtn.disabled = !(aName.value.trim() && aDept.value.trim() && aEmail.value.trim() && aPass.value.trim()); }
-[aName,aDept,aEmail,aPass].forEach(el=>el.addEventListener("input", checkSignup));
+const aName = $("aName"), aEmail = $("aEmail"), aPass = $("aPass"), signupAdminBtn = $("signupAdmin");
+function checkSignup(){ signupAdminBtn.disabled = !(aName.value.trim() && aEmail.value.trim() && aPass.value.trim()); }
+[aName,aEmail,aPass].forEach(el=>el.addEventListener("input", checkSignup));
 checkSignup();
 $("signupAdmin").onclick = async ()=>{
   const r = await signupAdmin({
-    name: aName.value.trim(), dept: aDept.value.trim(),
+    name: aName.value.trim(),
     email: aEmail.value.trim(), pass: aPass.value.trim()
   });
   if(r.ok){ alert(r.msg); location.href="admin-login.html"; } else { alert(r.msg); }

@@ -44,8 +44,8 @@ export default async function handler(req, res) {
       if (existing.length) return res.status(400).json({ error: 'Email already exists' });
 
       await sql`
-        INSERT INTO admins (id, name, dept, email, password_hash)
-        VALUES (${'adm_' + Date.now()}, ${name}, ${dept}, ${email}, ${password})
+        INSERT INTO admins (id, name, email, password_hash)
+        VALUES (${'adm_' + Date.now()}, ${name}, ${email}, ${password})
       `;
 
       return res.status(200).json({ ok: true, msg: 'Admin account created.' });

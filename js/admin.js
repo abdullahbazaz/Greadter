@@ -1,5 +1,5 @@
 // Admin panel — live API backend (Neon via Vercel)
-const API_BASE = "https://projectgreadter.vercel.app/api";
+const API_BASE = "/api";
 
 const $ = id => document.getElementById(id);
 
