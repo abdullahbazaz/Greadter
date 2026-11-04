@@ -63,21 +63,35 @@ $("loginAdmin").onclick = async ()=>{
   if(r.ok){ location.href = r.redirect; } else { alert(r.msg); }
 };
 
-// Auto-open selected role section
+// Auto-open selected role section and hide others
 const params = new URLSearchParams(location.search);
 const role = params.get('role');
+
+const secStudent = document.getElementById('sec-student');
+const secTeacher = document.getElementById('sec-teacher');
+const secAdmin = document.getElementById('sec-admin');
+
+function showOnly(id){
+  secStudent.style.display = id === 'sec-student' ? '' : 'none';
+  secTeacher.style.display = id === 'sec-teacher' ? '' : 'none';
+  secAdmin.style.display   = id === 'sec-admin'   ? '' : 'none';
+}
+
 if(role === 'student'){
-  document.getElementById('sec-student').open = true;
-  document.getElementById('sec-teacher').open = false;
-  document.getElementById('sec-admin').open = false;
+  showOnly('sec-student');
+  secStudent.open = true;
+  secTeacher.open = false;
+  secAdmin.open = false;
 } else if(role === 'teacher'){
-  document.getElementById('sec-teacher').open = true;
-  document.getElementById('sec-student').open = false;
-  document.getElementById('sec-admin').open = false;
+  showOnly('sec-teacher');
+  secTeacher.open = true;
+  secStudent.open = false;
+  secAdmin.open = false;
 } else if(role === 'admin'){
-  document.getElementById('sec-admin').open = true;
-  document.getElementById('sec-student').open = false;
-  document.getElementById('sec-teacher').open = false;
+  showOnly('sec-admin');
+  secAdmin.open = true;
+  secStudent.open = false;
+  secTeacher.open = false;
 }
 </script>
 </body>
