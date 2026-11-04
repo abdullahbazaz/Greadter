@@ -27,8 +27,13 @@
 <script src="js/data.js"></script>
 <script src="js/auth.js"></script>
 <script>
+const admEmail = $("admEmail"), admPass = $("admPass"), loginAdminBtn = $("loginAdmin");
+function checkLogin(){ loginAdminBtn.disabled = !(admEmail.value.trim() && admPass.value.trim()); }
+admEmail.addEventListener("input", checkLogin);
+admPass.addEventListener("input", checkLogin);
+checkLogin();
 $("loginAdmin").onclick = async ()=>{
-  const r = await loginAdmin($("admEmail").value, $("admPass").value);
+  const r = await loginAdmin(admEmail.value, admPass.value);
   if(r.ok){ location.href = r.redirect; } else { alert(r.msg); }
 };
 </script>

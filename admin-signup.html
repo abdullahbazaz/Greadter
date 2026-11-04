@@ -29,10 +29,14 @@
 <script src="js/data.js"></script>
 <script src="js/auth.js"></script>
 <script>
+const aName = $("aName"), aDept = $("aDept"), aEmail = $("aEmail"), aPass = $("aPass"), signupAdminBtn = $("signupAdmin");
+function checkSignup(){ signupAdminBtn.disabled = !(aName.value.trim() && aDept.value.trim() && aEmail.value.trim() && aPass.value.trim()); }
+[aName,aDept,aEmail,aPass].forEach(el=>el.addEventListener("input", checkSignup));
+checkSignup();
 $("signupAdmin").onclick = async ()=>{
   const r = await signupAdmin({
-    name: $("aName").value.trim(), dept: $("aDept").value.trim(),
-    email: $("aEmail").value.trim(), pass: $("aPass").value.trim()
+    name: aName.value.trim(), dept: aDept.value.trim(),
+    email: aEmail.value.trim(), pass: aPass.value.trim()
   });
   if(r.ok){ alert(r.msg); location.href="admin-login.html"; } else { alert(r.msg); }
 };

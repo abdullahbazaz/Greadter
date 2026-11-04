@@ -50,16 +50,34 @@
 <script src="js/data.js"></script>
 <script src="js/auth.js"></script>
 <script>
+// Validation: student login
+const sReg = $("stuReg"), sPass = $("stuPass"), sBtn = $("loginStudent");
+function chkStudent(){ sBtn.disabled = !(sReg.value.trim() && sPass.value.trim()); }
+[sReg,sPass].forEach(el=>el.addEventListener("input", chkStudent));
+chkStudent();
+
+// Validation: teacher login
+const tEmail = $("tchEmail"), tPass = $("tchPass"), tBtn = $("loginTeacher");
+function chkTeacher(){ tBtn.disabled = !(tEmail.value.trim() && tPass.value.trim()); }
+[tEmail,tPass].forEach(el=>el.addEventListener("input", chkTeacher));
+chkTeacher();
+
+// Validation: admin login
+const aEmail = $("admEmail"), aPass = $("admPass"), aBtn = $("loginAdmin");
+function chkAdmin(){ aBtn.disabled = !(aEmail.value.trim() && aPass.value.trim()); }
+[aEmail,aPass].forEach(el=>el.addEventListener("input", chkAdmin));
+chkAdmin();
+
 $("loginStudent").onclick = ()=>{
-  const r = attemptLogin($("stuReg").value, $("stuPass").value, "student");
+  const r = attemptLogin(sReg.value, sPass.value, "student");
   if(r.ok){ location.href = r.redirect; } else { $("uploadMsg")?:""; alert(r.msg); }
 };
 $("loginTeacher").onclick = ()=>{
-  const r = attemptLogin($("tchEmail").value, $("tchPass").value, "teacher");
+  const r = attemptLogin(tEmail.value, tPass.value, "teacher");
   if(r.ok){ location.href = r.redirect; } else { alert(r.msg); }
 };
 $("loginAdmin").onclick = async ()=>{
-  const r = await loginAdmin($("admEmail").value, $("admPass").value);
+  const r = await loginAdmin(aEmail.value, aPass.value);
   if(r.ok){ location.href = r.redirect; } else { alert(r.msg); }
 };
 

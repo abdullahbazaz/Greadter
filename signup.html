@@ -238,15 +238,26 @@ signupBtn.addEventListener('click', async (e)=>{
   }
 });
 
+// ---- Validation: teacher signup ----
+const tName = $("tName"), tDept = $("tDept"), tEmail = $("tEmail"), tPass = $("tPass"), tBtn = $("signupTeacher");
+function chkTSignup(){ tBtn.disabled = !(tName.value.trim() && tDept.value.trim() && tEmail.value.trim() && tPass.value.trim()); }
+[tName,tDept,tEmail,tPass].forEach(el=>el.addEventListener("input", chkTSignup));
+chkTSignup();
+
+// ---- Validation: admin signup ----
+const aName = $("aName"), aDept = $("aDept"), aEmail = $("aEmail"), aPass = $("aPass"), aBtn = $("signupAdmin");
+function chkASignup(){ aBtn.disabled = !(aName.value.trim() && aDept.value.trim() && aEmail.value.trim() && aPass.value.trim()); }
+[aName,aDept,aEmail,aPass].forEach(el=>el.addEventListener("input", chkASignup));
+chkASignup();
+
 $("signupAdmin").onclick = async ()=>{
   const r = await signupAdmin({
-    name: $("aName").value.trim(),
-    dept: $("aDept").value.trim(),
-    email: $("aEmail").value.trim(),
-    pass: $("aPass").value.trim()
+    name: aName.value.trim(),
+    dept: aDept.value.trim(),
+    email: aEmail.value.trim(),
+    pass: aPass.value.trim()
   });
   if(r.ok){ alert(r.msg); location.href="login.html?role=admin"; } else { alert(r.msg); }
 };
-</script>
 </body>
 </html>

@@ -31,10 +31,14 @@
 <script src="js/data.js"></script>
 <script src="js/auth.js"></script>
 <script>
+const tName = $("tName"), tDept = $("tDept"), tEmail = $("tEmail"), tPass = $("tPass"), signupTeacherBtn = $("signupTeacher");
+function checkSignup(){ signupTeacherBtn.disabled = !(tName.value.trim() && tDept.value.trim() && tEmail.value.trim() && tPass.value.trim()); }
+[tName,tDept,tEmail,tPass].forEach(el=>el.addEventListener("input", checkSignup));
+checkSignup();
 $("signupTeacher").onclick = async ()=>{
   const r = await signupTeacher({
-    name: $("tName").value.trim(), dept: $("tDept").value.trim(),
-    email: $("tEmail").value.trim(), pass: $("tPass").value.trim()
+    name: tName.value.trim(), dept: tDept.value.trim(),
+    email: tEmail.value.trim(), pass: tPass.value.trim()
   });
   if(r.ok){ alert(r.msg); location.href="teacher-login.html"; } else { alert(r.msg); }
 };

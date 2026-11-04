@@ -28,8 +28,13 @@
 <script src="js/data.js"></script>
 <script src="js/auth.js"></script>
 <script>
+const stuReg = $("stuReg"), stuPass = $("stuPass"), loginStudent = $("loginStudent");
+function checkLogin(){ loginStudent.disabled = !(stuReg.value.trim() && stuPass.value.trim()); }
+stuReg.addEventListener("input", checkLogin);
+stuPass.addEventListener("input", checkLogin);
+checkLogin();
 $("loginStudent").onclick = ()=>{
-  const r = attemptLogin($("stuReg").value, $("stuPass").value, "student");
+  const r = attemptLogin(stuReg.value, stuPass.value, "student");
   if(r.ok){ location.href = r.redirect; } else { alert(r.msg); }
 };
 </script>

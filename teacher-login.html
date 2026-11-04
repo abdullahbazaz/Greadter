@@ -28,8 +28,13 @@
 <script src="js/data.js"></script>
 <script src="js/auth.js"></script>
 <script>
+const tchEmail = $("tchEmail"), tchPass = $("tchPass"), loginTeacher = $("loginTeacher");
+function checkLogin(){ loginTeacher.disabled = !(tchEmail.value.trim() && tchPass.value.trim()); }
+tchEmail.addEventListener("input", checkLogin);
+tchPass.addEventListener("input", checkLogin);
+checkLogin();
 $("loginTeacher").onclick = ()=>{
-  const r = attemptLogin($("tchEmail").value, $("tchPass").value, "teacher");
+  const r = attemptLogin(tchEmail.value, tchPass.value, "teacher");
   if(r.ok){ location.href = r.redirect; } else { alert(r.msg); }
 };
 </script>
