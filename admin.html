@@ -13,8 +13,8 @@
 </header>
 <main class="container">
 
-  <!-- Not logged in: show login button only -->
-  <div id="adminLoginView" style="display:none;">
+  <!-- Not logged in: login button only -->
+  <div id="adminLoginView">
     <section class="hero" style="padding:32px 0 12px">
       <h1 style="font-size:34px">Admin Login</h1>
     </section>
@@ -30,7 +30,7 @@
     </div>
   </div>
 
-  <!-- Logged in: show full admin dashboard -->
+  <!-- Logged in: full admin dashboard -->
   <div id="adminDashboardView" style="display:none;">
     <section class="hero" style="padding:32px 0 12px">
       <h1 style="font-size:34px">Admin panel</h1>
@@ -40,7 +40,6 @@
     <div class="hero-actions" style="justify-content:center; margin-top:24px;">
       <div style="max-width:640px; margin:0 auto; background:#fff; border:1px solid #eee; border-radius:12px; padding:24px; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
 
-        <!-- Departments -->
         <div style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid #f5f5f5;">
           <h3 style="margin:0 0 12px 0; font-size:18px;">Departments</h3>
           <div class="formgrid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
@@ -51,7 +50,6 @@
           <div id="departmentList" class="rows" style="margin-top:12px;"></div>
         </div>
 
-        <!-- Sections -->
         <div style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid #f5f5f5;">
           <h3 style="margin:0 0 12px 0; font-size:18px;">Sections</h3>
           <div class="formgrid" style="display:grid; grid-template-columns:1fr 1fr auto; gap:8px; margin-bottom:12px; align-items:end;">
@@ -62,20 +60,17 @@
           <div id="sectionList" class="rows" style="margin-top:12px;"></div>
         </div>
 
-        <!-- Pending teachers -->
         <div style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid #f5f5f5;">
           <h3 style="margin:0 0 12px 0; font-size:18px;">Pending teachers</h3>
           <p class="small muted" style="margin:0 0 12px 0;">Teachers awaiting approval.</p>
           <div id="pendingTeachers" class="rows"></div>
         </div>
 
-        <!-- Teachers & sections -->
         <div style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid #f5f5f5;">
           <h3 style="margin:0 0 12px 0; font-size:18px;">Teachers &amp; sections</h3>
           <div id="teacherList"></div>
         </div>
 
-        <!-- Subjects -->
         <div style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid #f5f5f5;">
           <h3 style="margin:0 0 12px 0; font-size:18px;">Subjects</h3>
           <div class="formgrid" style="display:grid; grid-template-columns:1fr auto auto auto; gap:8px; margin-bottom:12px; align-items:end;">
@@ -87,7 +82,6 @@
           <div id="subjectList"></div>
         </div>
 
-        <!-- Student roster -->
         <div style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid #f5f5f5;">
           <h3 style="margin:0 0 12px 0; font-size:18px;">Student roster</h3>
           <p class="small muted" style="margin:0 0 12px 0;">Upload CSV: reg_no, name, roll_no, dept, email, section_id</p>
@@ -96,7 +90,6 @@
           <div id="rosterList" class="rows" style="margin-top:12px;"></div>
         </div>
 
-        <!-- Accounts -->
         <div style="margin-bottom:0;">
           <h3 style="margin:0 0 12px 0; font-size:18px;">Accounts</h3>
           <div id="accountList"></div>
@@ -113,6 +106,7 @@
 
 </main>
 
+<script src="js/data.js"></script>
 <script>
 const API_BASE = "https://projectgreadter.vercel.app/api";
 const $ = id => document.getElementById(id);
@@ -126,22 +120,19 @@ if(sess && sess.userType === "admin" && sess.token){
   loginView.style.display = "none";
   dashView.style.display  = "block";
 
-  // Load dashboard scripts only when logged in
-  [ "js/data.js", "js/admin.js" ].forEach(src=>{
-    const s = document.createElement("script");
-    s.src = src;
-    document.head.appendChild(s);
-  });
+  const s = document.createElement("script");
+  s.src = "js/admin.js";
+  document.head.appendChild(s);
 } else {
   loginView.style.display = "block";
   dashView.style.display  = "none";
 
-  $("goAdminLogin").onclick = ()=>{
+  $("goAdminLogin").onclick = function(){
     location.href = "admin-login.html";
   };
 }
 
-$("adminLogoutBtn")?.onclick = ()=>{
+$("adminLogoutBtn") && ($("adminLogoutBtn").onclick = function(){
   fetch(API_BASE + "/logout", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
@@ -149,7 +140,7 @@ $("adminLogoutBtn")?.onclick = ()=>{
   });
   localStorage.removeItem("greadter_session_v1");
   location.reload();
-};
+});
 </script>
 </body>
 </html>
