@@ -8,7 +8,7 @@ html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
   font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
-::selection{background:#e8e8ed}
+::selection{background:#F5EFD6}
 
 /* top nav — thin translucent, like apple.com */
 .topbar{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;
