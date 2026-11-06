@@ -6,7 +6,7 @@
   ],
   "functions": {
     "backend/*.js": {
-      "runtime": "nodejs@20.x"
+      "runtime": "nodejs@18.x"
     }
   }
 }
