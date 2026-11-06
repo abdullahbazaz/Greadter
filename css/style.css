@@ -1,6 +1,6 @@
 /* Greadter — Apple-style minimal. Flat, hairlines, Helvetica. No boxed cards. */
 :root{
-  --ink:#1d1d1f; --sub:#6e6e73; --line:#d2d2d7; --bg:#fbfbfd;
+  --ink:#1d1d1f; --sub:#6e6e73; --line:#d2d2d7; --bg:#c2c7a5;
   --blue:#0071e3; --red:#bf4800; --green:#1d8127; --amber:#9a6a00;
 }
 *{box-sizing:border-box}
