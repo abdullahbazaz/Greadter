@@ -3,6 +3,11 @@
     { "src": "/api/(.*)", "dest": "/backend/$1.js" },
     { "src": "/", "dest": "/index.html" },
     { "src": "/api/download", "dest": "/backend/download.js" }
-  ]
+  ],
+  "functions": {
+    "/backend/*.js": {
+      "runtime": "nodejs@24.x"
+    }
+  }
 }
 
