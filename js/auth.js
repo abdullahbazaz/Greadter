@@ -99,12 +99,12 @@ async function loginAdmin(email, password){
   }
 }
 
-async function signupAdmin({name, dept, email, pass}){
+async function signupAdmin({name, email, pass}){
   try{
     const res = await fetch(`${API_BASE}/signup`, {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ name, dept, email, pass, role: "admin" })
+      body: JSON.stringify({ name, email, pass, role: "admin" })
     });
     const data = await res.json();
 
