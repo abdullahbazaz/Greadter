@@ -11,3 +11,4 @@ export default function sql(strings, ...values) {
   }
   return sqlInstance(strings, ...values);
 }
+

@@ -5,9 +5,7 @@ import me from '../backend/me.js';
 import submissions from '../backend/submissions.js';
 import submissionsAdmin from '../backend/submissions_admin.js';
 import subjects from '../backend/subjects.js';
-import subjectsCreate from '../backend/subjects_create.js';
 import topics from '../backend/topics.js';
-import topicsCreate from '../backend/topics_create.js';
 import customTopics from '../backend/custom_topics.js';
 import sections from '../backend/sections.js';
 import teachers from '../backend/teachers.js';
@@ -16,6 +14,8 @@ import teacherSections from '../backend/teacher_sections.js';
 import enroll from '../backend/enroll.js';
 import csv from '../backend/csv.js';
 import download from '../backend/download.js';
+import upload from '../backend/upload.js';
+import departments from '../backend/departments.js';
 
 const routes = {
   login,
@@ -25,9 +25,7 @@ const routes = {
   submissions,
   submissions_admin: submissionsAdmin,
   subjects,
-  subjects_create: subjectsCreate,
   topics,
-  topics_create: topicsCreate,
   custom_topics: customTopics,
   sections,
   teachers,
@@ -36,17 +34,15 @@ const routes = {
   enroll,
   csv,
   download,
+  upload,
+  departments,
 };
 
 export default async function handler(req, res) {
   try {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
-    }
+    // Same-origin app: no CORS headers, so other sites cannot call the API from a browser.
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
 
     const { route } = req.query;
     let path = '';
@@ -55,20 +51,24 @@ export default async function handler(req, res) {
     } else if (typeof route === 'string') {
       path = route.split('/')[0];
     }
-
     if (!path) {
       const urlPath = (req.url || '').split('/api/')[1] || '';
       path = urlPath.split('/')[0].split('?')[0];
     }
 
-    const handlerFn = routes[path];
-    if (!handlerFn) {
-      return res.status(404).json({ error: 'Not found', path });
-    }
+    const handlerFn = Object.hasOwn(routes, path) ? routes[path] : null;
+    if (!handlerFn) return res.status(404).json({ error: 'Not found' });
 
-    return handlerFn(req, res);
+    // Handlers destructure req.body; make sure it is always an object.
+    if (typeof req.body === 'string') {
+      try { req.body = JSON.parse(req.body); } catch { req.body = {}; }
+    }
+    if (!req.body || typeof req.body !== 'object') req.body = {};
+
+    return await handlerFn(req, res);
   } catch (e) {
     console.error('catchall error:', e);
-    return res.status(500).json({ error: 'Server error', detail: String(e) });
+    // Never echo internal error details to the client.
+    if (!res.headersSent) return res.status(500).json({ error: 'Server error' });
   }
 }

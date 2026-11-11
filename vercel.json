@@ -1,5 +1,16 @@
 {
   "routes": [
+    {
+      "src": "/(.*)",
+      "headers": {
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "continue": true
+    },
+    { "src": "/(backend/.*|db/.*|csvscript\\.js|package\\.json|README\\.md|remaining_features\\.txt|vercel\\.json|\\.git.*)", "status": 404 },
     { "src": "/api/(.*)", "dest": "/api/[...route].mjs" },
     { "src": "/", "dest": "/index.html" }
   ]

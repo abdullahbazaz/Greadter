@@ -1,71 +1,76 @@
+import crypto from 'node:crypto';
 import sql from './db.js';
+import { requireRole, newId, str, STAFF } from './auth.js';
+
+const joinCode = () => 'GC' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') return res.status(200).end();
-
-  if (req.method === 'GET') {
-    try {
-      const rows = await sql`SELECT * FROM sections ORDER BY name`;
+  try {
+    if (req.method === 'GET') {
+      // Join codes are sensitive: admins see all sections, teachers only their own.
+      const session = await requireRole(req, res, STAFF);
+      if (!session) return;
+      const rows = session.user_type === 'admin'
+        ? await sql`SELECT * FROM sections ORDER BY name`
+        : await sql`
+            SELECT s.* FROM sections s
+            JOIN section_teachers st ON st.section_id = s.id
+            WHERE st.teacher_id = ${session.user_id}
+            ORDER BY s.name
+          `;
       return res.status(200).json({ ok: true, sections: rows });
-    } catch (e) {
-      console.error(e);
-      return res.status(500).json({ error: 'Server error' });
     }
-  }
 
-  if (req.method === 'POST') {
-    try {
-      const { id, action, name, department_id, join_code } = req.body;
-      const has = key => Object.prototype.hasOwnProperty.call(req.body, key);
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    if (!(await requireRole(req, res, ['admin']))) return;
 
-      if (action === 'delete') {
-        if (!id) return res.status(400).json({ error: 'id required' });
-        // Detach dependent rows first, ignoring tables that may not exist.
-        const cleanups = [
-          () => sql`DELETE FROM section_teachers WHERE section_id = ${id}`,
-          () => sql`UPDATE students SET section_id = NULL WHERE section_id = ${id}`,
-          () => sql`UPDATE subjects SET section_id = NULL WHERE section_id = ${id}`,
-        ];
-        for (const cleanup of cleanups) {
-          try { await cleanup(); } catch (e) { console.error('section cleanup:', e.message); }
-        }
-        await sql`DELETE FROM sections WHERE id = ${id}`;
-        return res.status(200).json({ ok: true });
-      }
+    const b = req.body;
+    const { id, action } = b;
+    const has = key => Object.hasOwn(b, key);
 
-      if (id) {
-        // Update: only overwrite the fields that were actually sent.
-        const [existing] = await sql`SELECT * FROM sections WHERE id = ${id}`;
-        if (!existing) return res.status(404).json({ error: 'Section not found' });
+    if (action === 'delete') {
+      if (!id) return res.status(400).json({ error: 'id required' });
+      // FK cascades remove its subjects (and their topics/submissions) and teacher links;
+      // students in it become unassigned (ON DELETE SET NULL).
+      await sql`DELETE FROM sections WHERE id = ${id}`;
+      return res.status(200).json({ ok: true });
+    }
 
-        const nextName = has('name') ? name : existing.name;
-        const nextDept = has('department_id') ? department_id : existing.department_id;
-        const nextCode = has('join_code') ? join_code : existing.join_code;
+    const deptId = has('department_id') ? b.department_id : undefined;
+    if (deptId !== undefined) {
+      if (!deptId) return res.status(400).json({ error: 'department_id required' });
+      const [dep] = await sql`SELECT id FROM departments WHERE id = ${deptId}`;
+      if (!dep) return res.status(400).json({ error: 'Department not found' });
+    }
 
-        await sql`
-          UPDATE sections
-          SET name = ${nextName}, department_id = ${nextDept ?? null}, join_code = ${nextCode}
-          WHERE id = ${id}
-        `;
-        return res.status(200).json({ ok: true, id });
-      }
+    if (id) {
+      // Update: only overwrite the fields that were actually sent.
+      const [existing] = await sql`SELECT * FROM sections WHERE id = ${id}`;
+      if (!existing) return res.status(404).json({ error: 'Section not found' });
 
-      if (!name) return res.status(400).json({ error: 'name required' });
-      const newId = 'sec' + Date.now() + Math.random().toString(36).slice(2, 7);
+      const nextName = has('name') ? str(b.name, 120) : existing.name;
+      if (!nextName) return res.status(400).json({ error: 'name required' });
+      const nextCode = has('join_code') ? (str(b.join_code, 40) || joinCode()) : existing.join_code;
+
       await sql`
-        INSERT INTO sections (id, name, department_id, join_code, created_at)
-        VALUES (${newId}, ${name}, ${department_id || null}, ${join_code || 'GC' + Date.now()}, NOW())
+        UPDATE sections
+        SET name = ${nextName}, department_id = ${deptId ?? existing.department_id}, join_code = ${nextCode}
+        WHERE id = ${id}
       `;
-      return res.status(200).json({ ok: true, id: newId });
-    } catch (e) {
-      console.error(e);
-      return res.status(500).json({ error: 'Server error' });
+      return res.status(200).json({ ok: true, id });
     }
-  }
 
-  return res.status(405).json({ error: 'Method not allowed' });
+    const name = str(b.name, 120);
+    if (!name) return res.status(400).json({ error: 'name required' });
+    if (!deptId) return res.status(400).json({ error: 'department_id required' });
+    const newSectionId = newId('sec');
+    await sql`
+      INSERT INTO sections (id, name, department_id, join_code, created_at)
+      VALUES (${newSectionId}, ${name}, ${deptId}, ${str(b.join_code, 40) || joinCode()}, NOW())
+    `;
+    return res.status(200).json({ ok: true, id: newSectionId });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Server error' });
+  }
 }

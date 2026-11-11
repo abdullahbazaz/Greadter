@@ -27,6 +27,7 @@ async function importRoster() {
       await sql`
         INSERT INTO student_roster (reg_no, name, roll_no, dept, email, section_key)
         VALUES (${row.reg_no}, ${row.name}, ${row.roll_no}, ${row.dept}, ${row.email}, ${row.section_key})
+        ON CONFLICT DO NOTHING
       `;
     }
 

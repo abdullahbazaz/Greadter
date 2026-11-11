@@ -19,6 +19,7 @@
         <div><input id="subName" placeholder="New subject"></div>
         <div><input id="subCode" placeholder="Code"></div>
       </div>
+      <select id="subSec"></select>
       <label>Assignment mode</label>
       <select id="subMode">
         <option value="single">One topic for all students</option>
@@ -38,7 +39,7 @@
       <textarea id="topicOverview" rows="2" placeholder="Overview"></textarea>
       <textarea id="topicReq" rows="2" placeholder="Requirements"></textarea>
       <div class="formgrid">
-        <div><input id="topicMarks" type="number" min="1" value="20"></div>
+        <div><input id="topicMarks" type="number" min="1" step="1" value="20"></div>
         <div><input id="topicDeadline" type="date" value="2026-11-15"></div>
       </div>
       <div class="toolbar"><button class="btn primary" id="addTopicBtn">Add</button></div>
@@ -75,11 +76,11 @@
     <div class="body">
       <div id="reviewList"></div>
       <select id="gradeSub"></select>
-      <input id="gradeMarks" type="number" min="0" placeholder="Marks">
+      <input id="gradeMarks" type="number" min="0" step="1" placeholder="Marks">
       <textarea id="gradeFb" rows="2" placeholder="Feedback"></textarea>
       <div class="toolbar">
         <button class="btn primary" id="saveGrade">Save</button>
-        <span class="small muted"><input type="checkbox" id="notifyToggle" style="width:auto"> email</span>
+        <span class="small muted" title="Email notifications are not available yet"><input type="checkbox" id="notifyToggle" style="width:auto" disabled> email (coming soon)</span>
       </div>
       <div id="gradeMsg"></div>
     </div>
@@ -98,7 +99,7 @@
     </div>
   </details>
 
-  <p class="note"><button class="linklike" id="resetBtn">Reset</button></p>
+  <p class="note"><button class="linklike" id="logoutBtn">Log out</button></p>
 </main>
 
 <div class="modal-bg" id="delModal"><div class="modal">
@@ -108,7 +109,7 @@
   <div class="toolbar"><button class="btn danger" id="delConfirm" disabled>Delete</button><button class="btn" id="delCancel">Cancel</button></div>
 </div></div>
 
-<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
 <script src="js/teacher.js"></script>
 </body>
 </html>

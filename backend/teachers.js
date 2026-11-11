@@ -1,15 +1,18 @@
 import sql from './db.js';
+import { requireRole } from './auth.js';
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const rows = await sql`SELECT * FROM teachers ORDER BY name`;
+    if (!(await requireRole(req, res, ['admin']))) return;
+    // Explicit columns: never send password_hash to the browser.
+    const rows = await sql`
+      SELECT t.id, t.name, t.dept, t.email, t.status,
+             COALESCE((SELECT array_agg(st.section_id) FROM section_teachers st WHERE st.teacher_id = t.id), '{}') AS section_ids
+      FROM teachers t
+      ORDER BY t.name
+    `;
     return res.status(200).json({ ok: true, teachers: rows });
   } catch (e) {
     console.error(e);

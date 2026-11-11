@@ -1,82 +1,109 @@
 import sql from './db.js';
+import { getSession, hashPassword, newId, str, EMAIL_RE } from './auth.js';
+
+const MIN_PW = 8;
+
+async function resolveSection(section, dept) {
+  if (!section) return null;
+  try {
+    const [byId] = await sql`SELECT id FROM sections WHERE id = ${section} LIMIT 1`;
+    if (byId) return byId.id;
+    // Student signup sends a section letter ("A"); match "A", "Section A", "CSE A", ...
+    // but only inside the student's own department, since every department has an "A".
+    const [byName] = await sql`
+      SELECT s.id FROM sections s
+      JOIN departments d ON d.id = s.department_id
+      WHERE upper(d.code) = upper(${dept || ''})
+        AND (s.name ILIKE ${section} OR s.name ILIKE ${'Section ' + section} OR s.name ILIKE ${'% ' + section})
+      LIMIT 1
+    `;
+    return byName ? byName.id : null;
+  } catch (e) {
+    console.error('section lookup:', e.message);
+    return null;
+  }
+}
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(400).json({ error: 'Method not allowed' });
-
-  const { name, roll, reg, dept, email, password, pass, role, section, year } = req.body;
-  const pwd = password ?? pass;
+  const b = req.body;
+  const role = b.role;
+  const name = str(b.name, 120);
+  const email = str(b.email, 200);
+  const dept = str(b.dept, 60);
+  const pwd = typeof (b.password ?? b.pass) === 'string' ? (b.password ?? b.pass) : '';
 
   try {
+    const caller = await getSession(req);
+    const isAdmin = caller?.user_type === 'admin';
+
     if (role === 'student') {
-      // Check duplicates
-      const existing = await sql`SELECT * FROM students WHERE reg_no = ${reg} OR roll_no = ${roll} OR email = ${email}`;
+      const reg = str(b.reg, 60), roll = str(b.roll, 60), section = str(b.section, 60);
+      if (!reg || !roll || !name) return res.status(400).json({ error: 'Name, registration no. and roll no. are required' });
+      // Admin roster import may create password-less rows; self-signup must set a password.
+      if (!isAdmin) {
+        if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'A valid email is required' });
+        if (pwd.length < MIN_PW) return res.status(400).json({ error: `Password must be at least ${MIN_PW} characters` });
+      }
+      const sectionId = await resolveSection(section, dept);
+
+      const existing = await sql`
+        SELECT reg_no, roll_no, password_hash FROM students
+        WHERE reg_no = ${reg} OR roll_no = ${roll} OR (${email} <> '' AND lower(email) = lower(${email}))
+      `;
+
+      // A roster-imported student claims their account by matching reg + roll.
+      const claimable = !isAdmin && existing.length === 1 && existing[0].reg_no === reg
+        && existing[0].roll_no === roll && !existing[0].password_hash;
+      if (claimable) {
+        await sql`
+          UPDATE students
+          SET name = ${name}, email = ${email}, password_hash = ${hashPassword(pwd)},
+              section_id = COALESCE(section_id, ${sectionId})
+          WHERE reg_no = ${reg}
+        `;
+        return res.status(200).json({ ok: true, msg: 'Account activated. You can log in now.' });
+      }
       if (existing.length) return res.status(400).json({ error: 'Registration no., roll no., or email already exists' });
 
-      // TODO: Backend must parse the CSV file named:
-      //   "{dept.toLowerCase()} {year} {section}.csv"
-      // Example: "cse 2026 A.csv"
-      // Look for reg or roll inside that CSV. If not found, reject signup.
-      // For now, this step is skipped until CSV file storage is added.
-
-      // Students.signup sends a section letter ("A"), while admin roster import
-      // may send a real section id. Resolve whichever form we got to a section id.
-      let sectionId = null;
-      if (section) {
-        try {
-          const [byId] = await sql`SELECT id FROM sections WHERE id = ${section} LIMIT 1`;
-          if (byId) {
-            sectionId = byId.id;
-          } else {
-            const letter = String(section).trim();
-            const [byName] = await sql`
-              SELECT id FROM sections
-              WHERE name ILIKE ${letter}
-                 OR name ILIKE ${'Section ' + letter}
-                 OR name ILIKE ${'% ' + letter}
-              LIMIT 1
-            `;
-            if (byName) sectionId = byName.id;
-          }
-        } catch (e) {
-          // sections table not set up yet: continue with an unassigned student.
-          console.error('section lookup:', e.message);
-        }
-      }
-
-      const fullYear = Number.parseInt(year, 10);
-      const rosterFile = `${String(dept || '').toLowerCase()} ${Number.isFinite(fullYear) ? 2000 + fullYear : ''} ${section || ''}`.replace(/\s+/g, ' ').trim();
       await sql`
-        INSERT INTO students (reg_no, name, roll_no, dept, email, email_verified, status, section_id, created_at)
-        VALUES (${reg}, ${name}, ${roll}, ${dept}, ${email}, false, 'active', ${sectionId}, NOW())
+        INSERT INTO students (reg_no, name, roll_no, dept, email, email_verified, status, section_id, password_hash, created_at)
+        VALUES (${reg}, ${name}, ${roll}, ${dept}, ${email || null}, false, 'active', ${sectionId},
+                ${pwd ? hashPassword(pwd) : null}, NOW())
       `;
+      return res.status(200).json({ ok: true, msg: 'Account created.' });
+    }
 
-      return res.status(200).json({ ok: true, msg: `Account created${rosterFile ? `. Section roster checked: ${rosterFile}.csv` : '.'}` });
-    } else if (role === 'teacher') {
+    if (role === 'teacher' || role === 'admin') {
       if (!name || !email || !pwd) return res.status(400).json({ error: 'Name, email and password are required' });
-      const existing = await sql`SELECT * FROM teachers WHERE email = ${email}`;
-      if (existing.length) return res.status(400).json({ error: 'Email already exists' });
+      if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'A valid email is required' });
+      if (pwd.length < MIN_PW) return res.status(400).json({ error: `Password must be at least ${MIN_PW} characters` });
+    }
 
+    if (role === 'teacher') {
+      const existing = await sql`SELECT id FROM teachers WHERE lower(email) = lower(${email})`;
+      if (existing.length) return res.status(400).json({ error: 'Email already exists' });
       await sql`
         INSERT INTO teachers (id, name, dept, email, password_hash, status)
-        VALUES (${'tch_' + Date.now()}, ${name}, ${dept}, ${email}, ${pwd}, 'pending')
+        VALUES (${newId('tch_')}, ${name}, ${dept}, ${email}, ${hashPassword(pwd)}, 'pending')
       `;
-
       return res.status(200).json({ ok: true, msg: 'Account created as pending. Awaiting admin approval.' });
-    } else if (role === 'admin') {
-      if (!name || !email || !pwd) return res.status(400).json({ error: 'Name, email and password are required' });
-      const existing = await sql`SELECT * FROM admins WHERE email = ${email}`;
-      if (existing.length) return res.status(400).json({ error: 'Email already exists' });
+    }
 
+    if (role === 'admin') {
+      // Anyone could previously make themselves admin. Now only the very first
+      // admin can self-register; after that an existing admin must be logged in.
+      if (!isAdmin) {
+        const [{ n }] = await sql`SELECT COUNT(*)::int AS n FROM admins`;
+        if (n > 0) return res.status(403).json({ error: 'Only an existing admin can create admin accounts' });
+      }
+      const existing = await sql`SELECT id FROM admins WHERE lower(email) = lower(${email})`;
+      if (existing.length) return res.status(400).json({ error: 'Email already exists' });
       await sql`
         INSERT INTO admins (id, name, email, password_hash)
-        VALUES (${'adm_' + Date.now()}, ${name}, ${email}, ${pwd})
+        VALUES (${newId('adm_')}, ${name}, ${email}, ${hashPassword(pwd)})
       `;
-
       return res.status(200).json({ ok: true, msg: 'Admin account created.' });
     }
 

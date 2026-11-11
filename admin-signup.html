@@ -20,12 +20,11 @@
     <div style="max-width:360px; margin:0 auto">
       <input id="aName" placeholder="Full name" autocomplete="off">
       <input id="aEmail" type="email" placeholder="Admin email" autocomplete="off">
-      <input id="aPass" type="password" placeholder="Password" autocomplete="new-password">
+      <input id="aPass" type="password" placeholder="Password (min. 8 characters)" minlength="8" autocomplete="new-password">
       <div class="toolbar" style="justify-content:center"><button class="btn primary" id="signupAdmin">Create account</button></div>
     </div>
   </div>
 </main>
-<script src="js/data.js"></script>
 <script src="js/auth.js"></script>
 <script>
 const aName = $("aName"), aEmail = $("aEmail"), aPass = $("aPass"), signupAdminBtn = $("signupAdmin");

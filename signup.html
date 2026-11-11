@@ -69,7 +69,7 @@
       <input id="sEmail" type="email" placeholder="name@college.edu" autocomplete="off">
 
       <label>Password</label>
-      <input id="sPass" type="password" placeholder="Password" autocomplete="new-password">
+      <input id="sPass" type="password" placeholder="Password (min. 8 characters)" minlength="8" autocomplete="new-password">
 
       <div id="verifyMsg" class="small muted" style="margin-top:8px"></div>
       <div class="toolbar"><button class="btn primary" id="signupStudent" disabled>Create account</button></div>
@@ -84,7 +84,7 @@
       <input id="tName" placeholder="Full name" autocomplete="off">
       <input id="tDept" placeholder="Department" autocomplete="off">
       <input id="tEmail" type="email" placeholder="University email" autocomplete="off">
-      <input id="tPass" type="password" placeholder="Password" autocomplete="new-password">
+      <input id="tPass" type="password" placeholder="Password (min. 8 characters)" minlength="8" autocomplete="new-password">
       <div class="toolbar"><button class="btn primary" id="signupTeacher">Create account</button></div>
       <p class="small muted">Already have an account? <a class="link" href="login.html?role=teacher">Log in →</a></p>
     </div>
@@ -97,14 +97,13 @@
       <input id="aName" placeholder="Full name" autocomplete="off">
       <input id="aDept" placeholder="Department" autocomplete="off">
       <input id="aEmail" type="email" placeholder="Admin email" autocomplete="off">
-      <input id="aPass" type="password" placeholder="Password" autocomplete="new-password">
+      <input id="aPass" type="password" placeholder="Password (min. 8 characters)" minlength="8" autocomplete="new-password">
       <div class="toolbar"><button class="btn primary" id="signupAdmin">Create account</button></div>
     </div>
   </details>
 
   <p class="note"><a class="link" href="index.html">← Back to home</a></p>
 </main>
-<script src="js/data.js"></script>
 <script src="js/auth.js"></script>
 <script>
 const params = new URLSearchParams(location.search);
@@ -135,6 +134,7 @@ const sSection = document.getElementById('sSection');
 const rollPrefix = document.getElementById('rollPrefix');
 const verifyMsg = document.getElementById('verifyMsg');
 const signupBtn = document.getElementById('signupStudent');
+const sName = $('sName'), sEmail = $('sEmail'), sPass = $('sPass');
 
 const deptPrefixMap = {
   CSE: 'CSE',
@@ -217,12 +217,9 @@ signupBtn.addEventListener('click', async (e)=>{
   const email = sEmail.value.trim();
   const pass = sPass.value.trim();
 
-  // Mock CSV verification message — backend must parse the CSV file here
-  verifyMsg.textContent = `Verifying ${reg} against ${dept.toLowerCase()} ${2000+parseInt(year)} ${section}.csv roster...`;
+  verifyMsg.textContent = "Creating account...";
   verifyMsg.style.color = '#6e6e73';
 
-  // Simulate backend delay
-  await new Promise(r=>setTimeout(r, 800));
 
   const r = await signupStudent({
     name, roll, reg, dept, email, pass, section, year
@@ -269,5 +266,6 @@ $("signupAdmin").onclick = async ()=>{
   });
   if(r.ok){ alert(r.msg); location.href="login.html?role=admin"; } else { alert(r.msg); }
 };
+</script>
 </body>
 </html>

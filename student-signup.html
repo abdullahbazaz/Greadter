@@ -60,7 +60,7 @@
       <input id="sEmail" type="email" placeholder="name@college.edu" autocomplete="off">
 
       <label>Password</label>
-      <input id="sPass" type="password" placeholder="Password" autocomplete="new-password">
+      <input id="sPass" type="password" placeholder="Password (min. 8 characters)" minlength="8" autocomplete="new-password">
 
       <div id="verifyMsg" class="small muted" style="margin-top:8px"></div>
       <div class="toolbar" style="justify-content:center"><button class="btn primary" id="signupStudent" disabled>Create account</button></div>
@@ -68,7 +68,6 @@
     </div>
   </div>
 </main>
-<script src="js/data.js"></script>
 <script src="js/auth.js"></script>
 <script>
 const sReg = document.getElementById('sReg');
@@ -79,6 +78,7 @@ const sSection = document.getElementById('sSection');
 const rollPrefix = document.getElementById('rollPrefix');
 const verifyMsg = document.getElementById('verifyMsg');
 const signupBtn = document.getElementById('signupStudent');
+const sName = $('sName'), sEmail = $('sEmail'), sPass = $('sPass');
 
 const deptPrefixMap = { CSE: 'CSE', ME: 'ME', ECE: 'ECE', CE: 'CE' };
 
@@ -123,9 +123,8 @@ signupBtn.addEventListener('click', async (e)=>{
   const rollSuffix = sRoll.value.trim(); const roll = dept + '-' + year + '-' + rollSuffix;
   const section = sSection.value; const name = sName.value.trim(); const email = sEmail.value.trim(); const pass = sPass.value.trim();
 
-  verifyMsg.textContent = `Verifying ${reg} against ${dept.toLowerCase()} ${2000+parseInt(year)} ${section}.csv roster...`;
+  verifyMsg.textContent = "Creating account...";
   verifyMsg.style.color = '#6e6e73';
-  await new Promise(r=>setTimeout(r, 800));
 
   const r = await signupStudent({name, roll, reg, dept, email, pass, section, year});
   if(r.ok){ verifyMsg.textContent = r.msg; verifyMsg.style.color = '#1d8127'; signupBtn.disabled = true; setTimeout(()=>location.href="student-login.html", 1200); }

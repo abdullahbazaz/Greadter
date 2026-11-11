@@ -26,18 +26,17 @@
     <summary><span><span class="n">03</span>Upload</span><span class="chev">›</span></summary>
     <div class="body">
       <p class="lede" id="uploadTopicInfo"></p>
-      <input id="stuName" placeholder="Name" autocomplete="off">
+      <input id="stuName" placeholder="Name" readonly>
       <div class="formgrid">
-        <div><input id="stuRoll" placeholder="Roll no." autocomplete="off"></div>
-        <div><input id="stuReg" placeholder="Reg. no." autocomplete="off"></div>
+        <div><input id="stuRoll" placeholder="Roll no." readonly></div>
+        <div><input id="stuReg" placeholder="Reg. no." readonly></div>
       </div>
-      <select id="stuDept">
+      <select id="stuDept" disabled>
         <option value="CSE">CSE</option>
         <option value="ME">ME</option>
         <option value="ECE">ECE</option>
         <option value="CE">CE</option>
       </select>
-      <select id="topicSelect"></select>
       <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.odt,.rtf">
       <div class="drop" id="dropZone">Drop files here</div>
       <div class="small muted">PDF, Word, PowerPoint, TXT only.</div>
@@ -57,12 +56,13 @@
     <div class="body"><div id="mySubs"></div></div>
   </details>
 
-  <p class="note"><button class="linklike" id="resetBtn">Reset</button></p>
+  <p class="note"><button class="linklike" id="logoutBtn">Log out</button></p>
 </main>
-<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
 <script type="module">
-  import { put } from 'https://esm.sh/@vercel/blob';
-  window.blobPut = put;
+  // Client uploads go through /api/upload, which issues a short-lived token.
+  import { upload } from 'https://esm.sh/@vercel/blob@2.9.0/client';
+  window.blobUpload = upload;
 </script>
 <script src="js/student.js"></script>
 </body>

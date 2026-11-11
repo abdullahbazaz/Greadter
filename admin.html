@@ -14,7 +14,7 @@
 <main class="container">
 
   <!-- Not logged in: login button only -->
-  <div id="adminLoginView">
+  <div id="adminLoginView" hidden>
     <section class="hero" style="padding:32px 0 12px">
       <h1 style="font-size:34px">Admin Login</h1>
     </section>
@@ -31,7 +31,7 @@
   </div>
 
   <!-- Logged in: full admin dashboard -->
-  <div id="adminDashboardView" style="display:none;">
+  <div id="adminDashboardView" hidden>
     <section class="hero" style="padding:32px 0 12px">
       <h1 style="font-size:34px">Admin panel</h1>
       <p class="small muted" style="margin-top:4px">Manage sections, teachers, subjects, and roster.</p>
@@ -106,41 +106,7 @@
 
 </main>
 
-<script src="js/data.js"></script>
-<script>
-const API_BASE = "/api";
-const $ = id => document.getElementById(id);
-
-const loginView = $("adminLoginView");
-const dashView  = $("adminDashboardView");
-const raw = localStorage.getItem("greadter_session_v1");
-const sess = raw ? JSON.parse(raw) : null;
-
-if(sess && sess.userType === "admin" && sess.token){
-  loginView.style.display = "none";
-  dashView.style.display  = "block";
-
-  const s = document.createElement("script");
-  s.src = "js/admin.js";
-  document.head.appendChild(s);
-} else {
-  loginView.style.display = "block";
-  dashView.style.display  = "none";
-
-  $("goAdminLogin").onclick = function(){
-    location.href = "admin-login.html";
-  };
-}
-
-$("adminLogoutBtn") && ($("adminLogoutBtn").onclick = function(){
-  fetch(API_BASE + "/logout", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({token: sess.token})
-  });
-  localStorage.removeItem("greadter_session_v1");
-  location.reload();
-});
-</script>
+<script src="js/auth.js"></script>
+<script src="js/admin.js"></script>
 </body>
 </html>
