@@ -1,22 +1,41 @@
-const routeMap = {
-  login: '../backend/login.js',
-  signup: '../backend/signup.js',
-  logout: '../backend/logout.js',
-  me: '../backend/me.js',
-  submissions: '../backend/submissions.js',
-  submissions_admin: '../backend/submissions_admin.js',
-  subjects: '../backend/subjects.js',
-  subjects_create: '../backend/subjects_create.js',
-  topics: '../backend/topics.js',
-  topics_create: '../backend/topics_create.js',
-  custom_topics: '../backend/custom_topics.js',
-  sections: '../backend/sections.js',
-  teachers: '../backend/teachers.js',
-  teacher_approve: '../backend/teacher_approve.js',
-  teacher_sections: '../backend/teacher_sections.js',
-  enroll: '../backend/enroll.js',
-  csv: '../backend/csv.js',
-  download: '../backend/download.js',
+import login from '../backend/login.js';
+import signup from '../backend/signup.js';
+import logout from '../backend/logout.js';
+import me from '../backend/me.js';
+import submissions from '../backend/submissions.js';
+import submissionsAdmin from '../backend/submissions_admin.js';
+import subjects from '../backend/subjects.js';
+import subjectsCreate from '../backend/subjects_create.js';
+import topics from '../backend/topics.js';
+import topicsCreate from '../backend/topics_create.js';
+import customTopics from '../backend/custom_topics.js';
+import sections from '../backend/sections.js';
+import teachers from '../backend/teachers.js';
+import teacherApprove from '../backend/teacher_approve.js';
+import teacherSections from '../backend/teacher_sections.js';
+import enroll from '../backend/enroll.js';
+import csv from '../backend/csv.js';
+import download from '../backend/download.js';
+
+const routes = {
+  login,
+  signup,
+  logout,
+  me,
+  submissions,
+  submissions_admin: submissionsAdmin,
+  subjects,
+  subjects_create: subjectsCreate,
+  topics,
+  topics_create: topicsCreate,
+  custom_topics: customTopics,
+  sections,
+  teachers,
+  teacher_approve: teacherApprove,
+  teacher_sections: teacherSections,
+  enroll,
+  csv,
+  download,
 };
 
 export default async function handler(req, res) {
@@ -24,7 +43,7 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    
+
     if (req.method === 'OPTIONS') {
       return res.status(200).end();
     }
@@ -36,22 +55,20 @@ export default async function handler(req, res) {
     } else if (typeof route === 'string') {
       path = route.split('/')[0];
     }
-    
+
     if (!path) {
-      const urlPath = req.url.split('/api/')[1] || '';
+      const urlPath = (req.url || '').split('/api/')[1] || '';
       path = urlPath.split('/')[0].split('?')[0];
     }
-    
-    const modulePath = routeMap[path];
-    if (!modulePath) {
-      return res.status(404).json({ error: 'Not found' });
+
+    const handlerFn = routes[path];
+    if (!handlerFn) {
+      return res.status(404).json({ error: 'Not found', path });
     }
-    
-    const mod = await import(modulePath);
-    const handlerFn = mod.default || mod;
+
     return handlerFn(req, res);
   } catch (e) {
     console.error('catchall error:', e);
-    return res.status(500).json({ error: 'Server error' });
+    return res.status(500).json({ error: 'Server error', detail: String(e) });
   }
 }
