@@ -38,6 +38,11 @@ img{max-width:100%}
   background:var(--paper);border-bottom:2px solid var(--ink);
 }
 .brand{font-weight:700;font-size:20px;letter-spacing:-.01em}
+/* today's date, handwritten like the top of an exercise-book page */
+.brand-wrap{display:flex;align-items:center;gap:14px}
+.today{font-family:var(--hand);font-size:18px;line-height:1;padding-right:14px;border-right:2px solid var(--ink);white-space:nowrap}
+.today:empty{display:none}
+.today-short{display:none}
 .topbar nav a{color:var(--ink);font-size:15px;margin-left:20px;text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:4px;text-decoration-thickness:2px}
 .topbar nav a:hover{text-decoration-color:var(--red)}
 
@@ -254,6 +259,10 @@ pre.preview:empty{display:none}
   .steps li::before{left:0;width:24px;text-align:left;font-size:24px}
   .formgrid{grid-template-columns:1fr}
   .topbar nav a{margin-left:12px}
+  .today-long{display:none}
+  .today-short{display:inline}
+  .brand-wrap{gap:10px}
+  .today{font-size:16px;padding-right:10px}
 }
 
 @media (prefers-reduced-motion:reduce){
