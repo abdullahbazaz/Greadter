@@ -201,15 +201,21 @@ async function doUpload(){
   const late = false; // server-side can compute properly later
 
   for(const f of stagedFiles){
-  const b = await window.blobPut(
-    `submissions/${Date.now()}-${f.name}`,
-    f.file,
-    { access: 'private', contentType: f.file.type || 'application/octet-stream' }
-  );
-  await api("/submissions", {
+  let b;
+  try {
+    b = await window.blobPut(
+      `submissions/${Date.now()}-${f.name}`,
+      f.file,
+      { access: 'private', contentType: f.file.type || 'application/octet-stream' }
+    );
+  } catch (err) {
+    $("uploadMsg").innerHTML = `<div class="alert bad">Could not upload ${esc(f.name)}: ${esc(err && err.message || err)}</div>`;
+    return;
+  }
+  const res = await api("/submissions", {
     method: "POST",
     body: JSON.stringify({
-      subject_id: selectedSubject, topicId: topicId, topicType: topicType,
+      subject_id: selectedSubject, topic_id: topicId, topic_type: topicType,
       student_name: nm, roll_no: rl, reg_no: rg, dept: dp,
       file_name: f.name, file_type: f.type, size_kb: f.sizeKB,
       file_url: b.url,
@@ -218,6 +224,10 @@ async function doUpload(){
       similarity_group: null, similarity_pct: null, feedback: []
     })
   });
+  if(!res || !res.ok){
+    $("uploadMsg").innerHTML = `<div class="alert bad">Could not save ${esc(f.name)}: ${esc(res && res.error || "unknown error")}</div>`;
+    return;
+  }
 }
   saveMine(); stagedFiles=[]; renderFileList();
   $("uploadMsg").innerHTML = `<div class="alert ok">Uploaded.</div>`;

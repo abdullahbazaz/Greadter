@@ -62,6 +62,11 @@ async function renderSections(){
     d.className = "rowline";
     d.innerHTML = `<span class="t">${esc(s.name)} <span class="s">code ${s.join_code}</span></span>
       <span><button class="linklike" data-act="del" data-id="${s.id}">Delete</button></span>`;
+    d.querySelector('[data-act="del"]').onclick = async ()=>{
+      if(!confirm(`Delete section "${s.name}"?`)) return;
+      await api("/sections", { method:"POST", body: JSON.stringify({ id: s.id, action:"delete" }) });
+      await renderSections(); await renderSubjects();
+    };
     box.appendChild(d);
     const o = document.createElement("option"); o.value=s.id; o.textContent=s.name; sel.appendChild(o);
   });
@@ -169,17 +174,22 @@ $("importRoster").onclick = async ()=>{
   const reader = new FileReader();
   reader.onload = async e=>{
     const text = e.target.result;
-    const lines = text.trim().split("\n");
+    const lines = text.trim().split(/\r?\n/);
+    let okCount = 0, failCount = 0;
     for(const line of lines.slice(1)){
+      if(!line.trim()) continue;
       const cols = line.split(",");
       if(cols.length<4) continue;
-      const [reg, name, roll, dept, email] = cols.map(c=>c.trim());
-      await api("/signup", {
+      const [reg, name, roll, dept, email, section] = cols.map(c=>c.trim());
+      // Email is optional in a roster; keep it unique so inserts don't collide.
+      const safeEmail = email || `${reg}@roster.local`;
+      const r = await api("/signup", {
         method:"POST",
-        body: JSON.stringify({ name, roll, reg:reg, dept, email:email||"", pass:"", role:"student" })
+        body: JSON.stringify({ name, roll, reg, dept, email:safeEmail, pass:"", section: section || null, role:"student" })
       });
+      if(r && r.ok) okCount++; else failCount++;
     }
-    alert("Roster imported via signup API.");
+    alert(`Roster import finished: ${okCount} added, ${failCount} skipped.`);
     await renderRoster(); await renderAccounts();
   };
   reader.readAsText(f);

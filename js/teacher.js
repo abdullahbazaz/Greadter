@@ -69,9 +69,9 @@ function renderSubjects(){
     }).map(sec=>sec.id);
   }
 
-  let subs = allSubjects.filter(s=> mySectionIds.length===0 || mySectionIds.includes(s.section_id));
+  let subs = allSubjects.filter(s=> !s.section_id || mySectionIds.length===0 || mySectionIds.includes(s.section_id));
   subs.forEach(s=>{
-    const n = allTopics.filter(t=>t.subjectId===s.id).length;
+    const n = allTopics.filter(t=>t.subject_id===s.id).length;
     const d = document.createElement("div");
     d.className = "rowline"; d.style.cursor = "default";
     d.innerHTML = `<span class="t">${esc(s.name)} <span class="s">${esc(s.code||"")} · ${n} · mode: ${s.assignment_mode||"single"}</span></span>
@@ -95,10 +95,10 @@ function renderSubjects(){
 
 $("addSubBtn").onclick = async ()=>{
   const n = $("subName").value.trim(); if(!n){ alert("Enter subject name"); return; }
-  const sid = $("topicSub").value;
+  // No section picker on the teacher page: leave section assignment to admins.
   await api("/subjects", {
     method:"POST",
-    body: JSON.stringify({ name:n, code:$("subCode").value.trim(), section_id:sid, assignment_mode:"single" })
+    body: JSON.stringify({ name:n, code:$("subCode").value.trim(), section_id:null, assignment_mode:$("subMode").value || "single" })
   });
   $("subName").value=""; $("subCode").value=""; await loadData(); renderAll();
 };

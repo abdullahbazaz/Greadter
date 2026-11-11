@@ -33,8 +33,8 @@ function checkLogin(){ loginTeacher.disabled = !(tchEmail.value.trim() && tchPas
 tchEmail.addEventListener("input", checkLogin);
 tchPass.addEventListener("input", checkLogin);
 checkLogin();
-$("loginTeacher").onclick = ()=>{
-  const r = attemptLogin(tchEmail.value, tchPass.value, "teacher");
+$("loginTeacher").onclick = async ()=>{
+  const r = await attemptLogin(tchEmail.value, tchPass.value, "teacher");
   if(r.ok){ location.href = r.redirect; } else { alert(r.msg); }
 };
 </script>

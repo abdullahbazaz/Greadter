@@ -21,9 +21,15 @@ export default async function handler(req, res) {
     const [user] = await sql`SELECT * FROM students WHERE reg_no = ${session.user_id}`;
     if (!user) return res.status(404).json({ error: 'User not found' });
     return res.status(200).json({ ok: true, user: { ...user, role: 'student' } });
+  } else if (session.user_type === 'admin') {
+    const [user] = await sql`SELECT * FROM admins WHERE id = ${session.user_id}`;
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const { password_hash, ...safeUser } = user;
+    return res.status(200).json({ ok: true, user: { ...safeUser, role: 'admin' } });
   } else {
     const [user] = await sql`SELECT * FROM teachers WHERE id = ${session.user_id}`;
     if (!user) return res.status(404).json({ error: 'User not found' });
-    return res.status(200).json({ ok: true, user: { ...user, role: 'teacher' } });
+    const { password_hash, ...safeUser } = user;
+    return res.status(200).json({ ok: true, user: { ...safeUser, role: 'teacher' } });
   }
 }

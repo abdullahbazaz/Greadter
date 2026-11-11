@@ -68,12 +68,12 @@ function chkAdmin(){ aBtn.disabled = !(aEmail.value.trim() && aPass.value.trim()
 [aEmail,aPass].forEach(el=>el.addEventListener("input", chkAdmin));
 chkAdmin();
 
-$("loginStudent").onclick = ()=>{
-  const r = attemptLogin(sReg.value, sPass.value, "student");
-  if(r.ok){ location.href = r.redirect; } else { $("uploadMsg")?:""; alert(r.msg); }
+$("loginStudent").onclick = async ()=>{
+  const r = await attemptLogin(sReg.value, sPass.value, "student");
+  if(r.ok){ location.href = r.redirect; } else { alert(r.msg); }
 };
-$("loginTeacher").onclick = ()=>{
-  const r = attemptLogin(tEmail.value, tPass.value, "teacher");
+$("loginTeacher").onclick = async ()=>{
+  const r = await attemptLogin(tEmail.value, tPass.value, "teacher");
   if(r.ok){ location.href = r.redirect; } else { alert(r.msg); }
 };
 $("loginAdmin").onclick = async ()=>{

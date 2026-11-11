@@ -244,6 +244,16 @@ function chkTSignup(){ tBtn.disabled = !(tName.value.trim() && tDept.value.trim(
 [tName,tDept,tEmail,tPass].forEach(el=>el.addEventListener("input", chkTSignup));
 chkTSignup();
 
+$("signupTeacher").onclick = async ()=>{
+  const r = await signupTeacher({
+    name: tName.value.trim(),
+    dept: tDept.value.trim(),
+    email: tEmail.value.trim(),
+    pass: tPass.value.trim()
+  });
+  if(r.ok){ alert(r.msg); location.href="login.html?role=teacher"; } else { alert(r.msg); }
+};
+
 // ---- Validation: admin signup ----
 const aName = $("aName"), aDept = $("aDept"), aEmail = $("aEmail"), aPass = $("aPass"), aBtn = $("signupAdmin");
 function chkASignup(){ aBtn.disabled = !(aName.value.trim() && aDept.value.trim() && aEmail.value.trim() && aPass.value.trim()); }

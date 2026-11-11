@@ -18,11 +18,12 @@ export default async function handler(req, res) {
 
   try {
     if (role === 'student') {
+      // Students log in with their registration number (or roll number / email).
       const [user] = await sql`
-        SELECT * FROM students WHERE email = ${email} AND status = 'active'
+        SELECT * FROM students
+        WHERE (email = ${email} OR reg_no = ${email} OR roll_no = ${email}) AND status = 'active'
       `;
       if (!user) return res.status(401).json({ error: 'Invalid credentials' });
-      if (!user.email_verified) return res.status(403).json({ error: 'Email not verified' });
 
       const token = 'sess_' + Date.now() + Math.random().toString(36).slice(2, 10);
       await sql`
@@ -42,6 +43,9 @@ export default async function handler(req, res) {
       if (!user) return res.status(401).json({ error: 'Invalid credentials' });
       if (user.status === 'pending') return res.status(403).json({ error: 'Awaiting admin approval' });
       if (user.status === 'inactive') return res.status(403).json({ error: 'Account inactive' });
+      if (user.password_hash && password !== user.password_hash) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
 
       const token = 'sess_' + Date.now() + Math.random().toString(36).slice(2, 10);
       await sql`
@@ -57,6 +61,9 @@ export default async function handler(req, res) {
     } else if (role === 'admin') {
       const [user] = await sql`SELECT * FROM admins WHERE email = ${email}`;
       if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+      if (user.password_hash && password !== user.password_hash) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
 
       const token = 'sess_' + Date.now() + Math.random().toString(36).slice(2, 10);
       await sql`

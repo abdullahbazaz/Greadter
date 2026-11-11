@@ -33,8 +33,8 @@ function checkLogin(){ loginStudent.disabled = !(stuReg.value.trim() && stuPass.
 stuReg.addEventListener("input", checkLogin);
 stuPass.addEventListener("input", checkLogin);
 checkLogin();
-$("loginStudent").onclick = ()=>{
-  const r = attemptLogin(stuReg.value, stuPass.value, "student");
+$("loginStudent").onclick = async ()=>{
+  const r = await attemptLogin(stuReg.value, stuPass.value, "student");
   if(r.ok){ location.href = r.redirect; } else { alert(r.msg); }
 };
 </script>
