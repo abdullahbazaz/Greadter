@@ -39,19 +39,34 @@ const routes = {
 };
 
 export default async function handler(req, res) {
-  const { route = [] } = req.query;
-  const path = Array.isArray(route) ? route.join('/') : route;
-  const name = path.split('/')[0];
-  const handlerFn = routes[name];
+  try {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
 
-  if (!handlerFn) {
-    return res.status(404).json({ error: 'Not found' });
-  }
+    const { route } = req.query;
+    let path = '';
+    if (Array.isArray(route)) {
+      path = route[0]; // Get first segment
+    } else if (typeof route === 'string') {
+      path = route.split('/')[0];
+    }
+    
+    const name = path || req.url.split('/api/')[1]?.split('/')[0]?.split('?')[0];
+    const handlerFn = routes[name];
 
-  // Set query params for routes that expect them
-  if (path.includes('/')) {
-    const parts = path.split('/');
-    // pass remaining as needed - handlers read from req.query
+    if (!handlerFn) {
+      return res.status(404).json({ error: 'Not found', name });
+    }
+    
+    return handlerFn(req, res);
+  } catch (e) {
+    console.error('catchall error:', e);
+    return res.status(500).json({ error: 'Server error' });
   }
-  return handlerFn(req, res);
 }
+EOF
