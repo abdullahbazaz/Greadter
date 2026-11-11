@@ -8,7 +8,8 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(400).json({ error: 'Method not allowed' });
 
-  const { name, roll, reg, dept, email, password, role, section, year } = req.body;
+  const { name, roll, reg, dept, email, password, pass, role, section, year } = req.body;
+  const pwd = password ?? pass;
 
   try {
     if (role === 'student') {
@@ -35,7 +36,7 @@ export default async function handler(req, res) {
 
       await sql`
         INSERT INTO teachers (id, name, dept, email, password_hash, status)
-        VALUES (${'tch_' + Date.now()}, ${name}, ${dept}, ${email}, ${password}, 'pending')
+        VALUES (${'tch_' + Date.now()}, ${name}, ${dept}, ${email}, ${pwd}, 'pending')
       `;
 
       return res.status(200).json({ ok: true, msg: 'Account created as pending. Awaiting admin approval.' });
@@ -45,7 +46,7 @@ export default async function handler(req, res) {
 
       await sql`
         INSERT INTO admins (id, name, email, password_hash)
-        VALUES (${'adm_' + Date.now()}, ${name}, ${email}, ${password})
+        VALUES (${'adm_' + Date.now()}, ${name}, ${email}, ${pwd})
       `;
 
       return res.status(200).json({ ok: true, msg: 'Admin account created.' });
