@@ -2,5 +2,10 @@
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/[...route].mjs" },
     { "src": "/", "dest": "/index.html" }
-  ]
+  ],
+  "functions": {
+    "api/[...route].mjs": {
+      "includeFiles": "backend/**"
+    }
+  }
 }
