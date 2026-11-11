@@ -1,4 +1,5 @@
 import { get } from '@vercel/blob';
+import { Readable } from 'node:stream';
 import sql from './db.js';
 
 export default async function handler(req, res) {
@@ -21,5 +22,10 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', blob.blob.contentType);
   res.setHeader('Cache-Control', 'private, no-cache');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  blob.stream.pipe(res);
+
+  if (blob.stream && typeof blob.stream.pipe === 'function') {
+    blob.stream.pipe(res);
+  } else {
+    Readable.fromWeb(blob.stream).pipe(res);
+  }
 }

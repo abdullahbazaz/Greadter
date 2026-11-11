@@ -1,6 +1,7 @@
 {
   "type": "module",
   "dependencies": {
-    "@neondatabase/serverless": "^1.2.0"
+    "@neondatabase/serverless": "^1.2.0",
+    "@vercel/blob": "^2.9.0"
   }
 }
