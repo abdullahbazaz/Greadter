@@ -65,6 +65,34 @@ async function downloadAuthed(path, filename){
 // Neon returns TIMESTAMP/DATE columns as ISO strings ("2026-11-11T09:30:00.000Z").
 const fmtDate = d => d ? String(d).slice(0, 10) : "";
 const fmtTime = d => d ? String(d).slice(0, 16).replace("T", " ") : "";
+// ---- academic calendar ----
+// Odd semesters (1,3,5,7) run August–January, even (2,4,6,8) February–July.
+// Change these two months if the university calendar differs.
+const ODD_TERM_START_MONTH = 8, EVEN_TERM_START_MONTH = 2, SEMESTERS = 8;
+function academicTerm(date = new Date()){
+  const m = date.getMonth() + 1, y = date.getFullYear();
+  return { startYear: m >= ODD_TERM_START_MONTH ? y : y - 1, odd: m >= ODD_TERM_START_MONTH || m < EVEN_TERM_START_MONTH };
+}
+// Semester a batch is in right now, e.g. Nov 2026: 2026→1, 2025→3, 2024→5, 2023→7.
+function semesterOf(batchYear, date){
+  if(!batchYear) return null;
+  const t = academicTerm(date);
+  return (t.startYear - batchYear) * 2 + (t.odd ? 1 : 2);
+}
+// Admission years currently studying (semesters 1–8), newest first.
+function activeBatches(date){
+  const { startYear } = academicTerm(date);
+  return Array.from({ length: SEMESTERS / 2 }, (_, i) => startYear - i);
+}
+function semesterText(batchYear){
+  const sem = semesterOf(batchYear);
+  return sem == null ? "" : sem > SEMESTERS ? "graduated" : sem < 1 ? "not started" : `Sem ${sem}`;
+}
+// "CSE 2025 · A · Sem 3"
+function sectionLabel(s){
+  if(!s) return "";
+  return [s.dept_code, s.batch_year, s.name, semesterText(s.batch_year)].filter(Boolean).join(" · ").replace(/^(\w+) · (\d{4})/, "$1 $2");
+}
 const downloadSubmission = s => downloadAuthed(`/download?id=${encodeURIComponent(s.id)}`, s.file_name || "submission");
 
 async function postJSON(path, body){

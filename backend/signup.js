@@ -1,20 +1,24 @@
 import sql from './db.js';
 import { getSession, hashPassword, newId, str, EMAIL_RE } from './auth.js';
+import { batchYear } from './sections.js';
 
 const MIN_PW = 8;
 
-async function resolveSection(section, dept) {
+async function resolveSection(section, dept, year) {
   if (!section) return null;
   try {
     const [byId] = await sql`SELECT id FROM sections WHERE id = ${section} LIMIT 1`;
     if (byId) return byId.id;
     // Student signup sends a section letter ("A"); match "A", "Section A", "CSE A", ...
-    // but only inside the student's own department, since every department has an "A".
+    // only inside the student's own department and admission batch, since every
+    // department has an "A" in every batch.
     const [byName] = await sql`
       SELECT s.id FROM sections s
       JOIN departments d ON d.id = s.department_id
       WHERE upper(d.code) = upper(${dept || ''})
+        AND (${year}::int IS NULL OR s.batch_year = ${year})
         AND (s.name ILIKE ${section} OR s.name ILIKE ${'Section ' + section} OR s.name ILIKE ${'% ' + section})
+      ORDER BY s.batch_year DESC NULLS LAST
       LIMIT 1
     `;
     return byName ? byName.id : null;
@@ -46,7 +50,10 @@ export default async function handler(req, res) {
         if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'A valid email is required' });
         if (pwd.length < MIN_PW) return res.status(400).json({ error: `Password must be at least ${MIN_PW} characters` });
       }
-      const sectionId = await resolveSection(section, dept);
+      // Admission year: form/roster "year" (25 or 2025), else from a roll no. like CSE-25-101.
+      let year = batchYear(b.year);
+      if (!year) year = batchYear((roll.match(/-(\d{2}|\d{4})-/) || [])[1]);
+      const sectionId = await resolveSection(section, dept, Number.isNaN(year) ? null : year);
 
       const existing = await sql`
         SELECT reg_no, roll_no, password_hash FROM students

@@ -10,7 +10,7 @@
       },
       "continue": true
     },
-    { "src": "/(backend/.*|db/.*|csvscript\\.js|package\\.json|README\\.md|remaining_features\\.txt|vercel\\.json|\\.git.*)", "status": 404 },
+    { "src": "/(backend/.*|db/.*|csvscript\\.js|package\\.json|README\\.md|WARNINGS\\.md|remaining_features\\.txt|.*\\.csv|vercel\\.json|\\.git.*)", "status": 404 },
     { "src": "/api/(.*)", "dest": "/api/[...route].mjs" },
     { "src": "/", "dest": "/index.html" }
   ]

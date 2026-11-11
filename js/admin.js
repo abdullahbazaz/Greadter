@@ -59,28 +59,45 @@ $("addDepBtn").onclick = async ()=>{
 };
 
 // ---- sections ----
+const secLabel = id => sectionLabel(sections.find(s=>s.id===id)) || id;
 function renderSections(){
   const box = $("sectionList"); box.innerHTML = "";
-  const sel = $("subjSec"); sel.innerHTML = '<option value="">Pick section</option>';
+  const sel = $("subjSec"); const curSub = sel.value;
+  sel.innerHTML = '<option value="">Pick section</option>';
+  // Batch picker: the 4 batches currently in semesters 1–8.
+  const bsel = $("secBatch"); const curB = bsel.value;
+  bsel.innerHTML = activeBatches().map(y=>`<option value="${y}">${y} batch · ${esc(semesterText(y))}</option>`).join("");
+  if(curB) bsel.value = curB;
   sections.forEach(s=>{
-    const d = row(`<span class="t">${esc(s.name)} <span class="s">id ${esc(s.id)} · code ${esc(s.join_code)}</span></span>
+    const sem = semesterText(s.batch_year);
+    const d = row(`<span class="t">${esc(sectionLabel(s))} <span class="s">code ${esc(s.join_code)}${s.batch_year?"":" · no batch set"}</span></span>
       <span><button class="linklike">Delete</button></span>`);
+    if(sem === "graduated") d.style.opacity = ".55";
     d.querySelector("button").onclick = async ()=>{
-      if(!confirm(`Delete section "${s.name}"? This also deletes its subjects and their submissions.`)) return;
+      if(!confirm(`Delete section "${sectionLabel(s)}"? This also deletes its subjects and their submissions.`)) return;
       await post("/sections", { id: s.id, action:"delete" });
       await loadAll();
     };
     box.appendChild(d);
-    const o = document.createElement("option"); o.value=s.id; o.textContent=s.name; sel.appendChild(o);
+    const o = document.createElement("option"); o.value=s.id; o.textContent=sectionLabel(s); sel.appendChild(o);
   });
+  if([...sel.options].some(o=>o.value===curSub)) sel.value = curSub;
   if(!sections.length){ box.innerHTML = `<div class="muted small">None.</div>`; sel.innerHTML = `<option value="">No sections</option>`; }
 }
 $("addSecBtn").onclick = async ()=>{
   if(!$("secDep").value){ alert("Pick a department"); return; }
-  const nm = $("secName").value.trim(); if(!nm){ alert("Enter section name"); return; }
+  const nm = $("secName").value.trim().toUpperCase(); if(!nm){ alert("Enter section name, e.g. A"); return; }
   // Join code is generated server-side with a secure random value.
-  const r = await post("/sections", { name:nm, department_id: $("secDep").value || null });
+  const r = await post("/sections", { name:nm, department_id:$("secDep").value, batch_year:+$("secBatch").value });
   if(r && r.ok){ $("secName").value=""; await loadAll(); }
+};
+$("bulkSecBtn").onclick = async ()=>{
+  const dep = departments.find(d=>d.id===$("secDep").value);
+  if(!dep){ alert("Pick a department"); return; }
+  const years = activeBatches();
+  if(!confirm(`Create sections A and B for ${dep.code} batches ${years.join(", ")}? Existing ones are kept.`)) return;
+  const r = await post("/sections", { action:"bulk", department_id:dep.id, batch_years:years, names:["A","B"] });
+  if(r && r.ok){ alert(`Created ${r.created} section(s), ${r.skipped} already existed.`); await loadAll(); }
 };
 
 // ---- pending teachers ----
@@ -98,29 +115,30 @@ function renderPending(){
 }
 
 // ---- teachers ----
-const sectionName = id => (sections.find(s=>s.id===id) || {}).name || id;
 function renderTeachers(){
   const box = $("teacherList"); box.innerHTML = "";
   teachers.forEach(t=>{
-    const assigned = (t.section_ids||[]).map(sectionName).join(", ") || "no sections";
+    const assigned = (t.section_ids||[]).map(secLabel).join(", ") || "no sections";
     const d = row(`<span class="t">${esc(t.name)} <span class="s">${esc(t.email)} · ${esc(t.status)} · ${esc(assigned)}</span></span>
       <span><button class="linklike">Assign sections</button></span>`);
-    d.querySelector("button").onclick = async ()=>{
+    const picker = document.createElement("div");
+    picker.className = "topic"; picker.hidden = true;
+    d.querySelector("button").onclick = ()=>{
       if(!sections.length){ alert("Create a section first."); return; }
-      const current = (t.section_ids||[]).map(sectionName).join(", ");
-      const input = prompt(`Sections for ${t.name} (comma-separated names or ids).\nAvailable: ${sections.map(s=>s.name).join(", ")}`, current);
-      if(input===null) return;
-      const wanted = input.split(",").map(s=>s.trim()).filter(Boolean);
-      const ids = [], unknown = [];
-      wanted.forEach(w=>{
-        const m = sections.find(s=>s.id===w) || sections.find(s=>s.name.toLowerCase()===w.toLowerCase());
-        m ? ids.push(m.id) : unknown.push(w);
-      });
-      if(unknown.length){ alert("Unknown section(s): " + unknown.join(", ")); return; }
-      await post("/teacher_sections", { teacher_id:t.id, section_ids:ids });
-      await loadAll();
+      if(!picker.hidden){ picker.hidden = true; return; }
+      const mine = new Set(t.section_ids||[]);
+      picker.innerHTML = sections.filter(s=>semesterText(s.batch_year)!=="graduated" || mine.has(s.id)).map(s=>
+        `<label class="small" style="display:block"><input type="checkbox" style="width:auto" value="${esc(s.id)}" ${mine.has(s.id)?"checked":""}> ${esc(sectionLabel(s))}</label>`).join("") +
+        `<div class="toolbar"><button class="btn primary small" data-save>Save</button><button class="btn small" data-cancel>Cancel</button></div>`;
+      picker.querySelector("[data-cancel]").onclick = ()=>{ picker.hidden = true; };
+      picker.querySelector("[data-save]").onclick = async ()=>{
+        const ids = [...picker.querySelectorAll("input:checked")].map(c=>c.value);
+        const r = await post("/teacher_sections", { teacher_id:t.id, section_ids:ids });
+        if(r && r.ok) await loadAll();
+      };
+      picker.hidden = false;
     };
-    box.appendChild(d);
+    box.appendChild(d); box.appendChild(picker);
   });
   if(!teachers.length) box.innerHTML = `<div class="muted small">No teachers.</div>`;
 }
@@ -129,7 +147,7 @@ function renderTeachers(){
 function renderSubjects(){
   const box = $("subjectList"); box.innerHTML = "";
   subjects.forEach(s=>{
-    const d = row(`<span class="t">${esc(s.name)} <span class="s">${esc(s.code||"")} · ${esc(s.section_id?sectionName(s.section_id):"no section")} · mode: ${esc(s.assignment_mode||"single")}</span></span>
+    const d = row(`<span class="t">${esc(s.name)} <span class="s">${esc(s.code||"")} · ${esc(s.section_id?secLabel(s.section_id):"no section")} · mode: ${esc(s.assignment_mode||"single")}</span></span>
       <span><button class="linklike">Delete</button></span>`);
     d.querySelector("button").onclick = async ()=>{
       if(!confirm(`Delete subject "${s.name}"? This also deletes its topics and submissions.`)) return;
@@ -162,8 +180,8 @@ $("importRoster").onclick = ()=>{
     $("importRoster").disabled = true;
     // Small parallel batches: faster than one-by-one without flooding the database.
     for(let i=0; i<rows.length; i+=5){
-      const results = await Promise.all(rows.slice(i, i+5).map(([reg, name, roll, dept, email, section])=>
-        api("/signup", { method:"POST", body: JSON.stringify({ name, roll, reg, dept, email: email || `${reg}@roster.local`, section: section || null, role:"student" }) })));
+      const results = await Promise.all(rows.slice(i, i+5).map(([reg, name, roll, dept, email, section, year])=>
+        api("/signup", { method:"POST", body: JSON.stringify({ name, roll, reg, dept, email: email || `${reg}@roster.local`, section: section || null, year: year || null, role:"student" }) })));
       results.forEach(r=> r && r.ok ? okCount++ : failCount++);
     }
     $("importRoster").disabled = false;

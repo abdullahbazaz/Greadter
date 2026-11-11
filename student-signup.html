@@ -33,10 +33,7 @@
 
       <label>Admission year</label>
       <select id="sYear" disabled>
-        <option value="">Select year</option>
-        <option value="24">2024</option>
-        <option value="25">2025</option>
-        <option value="26">2026</option>
+        <option value="">Select admission year</option>
       </select>
 
       <label>Roll no.</label>
@@ -73,6 +70,8 @@
 const sReg = document.getElementById('sReg');
 const sDept = document.getElementById('sDept');
 const sYear = document.getElementById('sYear');
+// Admission years currently studying (semesters 1–8), labelled with their semester.
+activeBatches().forEach(y=>{ const o=document.createElement('option'); o.value=String(y).slice(2); o.textContent=`${y} (${semesterText(y)})`; sYear.appendChild(o); });
 const sRoll = document.getElementById('sRoll');
 const sSection = document.getElementById('sSection');
 const rollPrefix = document.getElementById('rollPrefix');

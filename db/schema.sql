@@ -21,11 +21,16 @@ CREATE TABLE IF NOT EXISTS departments (
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- 2. Sections (tied to a department)
+-- 2. Sections (tied to a department and an admission batch).
+--    batch_year = admission year (e.g. 2025). The semester is NOT stored: it is
+--    computed from batch_year and today's date (see semesterOf in js/auth.js),
+--    so sections move from semester 1 → 2 → … → 8 automatically.
+--    Usually two sections ("A", "B") per department per batch.
 CREATE TABLE IF NOT EXISTS sections (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     department_id TEXT NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
+    batch_year INTEGER CHECK (batch_year BETWEEN 2000 AND 2100),
     join_code TEXT NOT NULL UNIQUE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -144,6 +149,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 -- ============================================================
 ALTER TABLE students    ADD COLUMN IF NOT EXISTS password_hash TEXT;
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS file_url TEXT;
+ALTER TABLE sections    ADD COLUMN IF NOT EXISTS batch_year INTEGER CHECK (batch_year BETWEEN 2000 AND 2100);
 
 -- ============================================================
 -- Indexes
@@ -153,6 +159,8 @@ CREATE INDEX IF NOT EXISTS idx_submissions_subject ON submissions(subject_id);
 CREATE INDEX IF NOT EXISTS idx_topics_subject ON topics(subject_id);
 CREATE INDEX IF NOT EXISTS idx_subjects_section ON subjects(section_id);
 CREATE INDEX IF NOT EXISTS idx_sections_department ON sections(department_id);
+-- One "A", one "B", … per department per batch.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_sections_dept_batch_name ON sections(department_id, batch_year, name);
 CREATE INDEX IF NOT EXISTS idx_custom_topics_subject ON custom_topics(subject_id);
 CREATE INDEX IF NOT EXISTS idx_enrollments_student ON enrollments(student_reg_no);
 CREATE INDEX IF NOT EXISTS idx_section_teachers_teacher ON section_teachers(teacher_id);

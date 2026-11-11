@@ -52,10 +52,15 @@
 
         <div style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid #f5f5f5;">
           <h3 style="margin:0 0 12px 0; font-size:18px;">Sections</h3>
-          <div class="formgrid" style="display:grid; grid-template-columns:1fr 1fr auto; gap:8px; margin-bottom:12px; align-items:end;">
+          <p class="small muted" style="margin:0 0 12px 0;">Each section belongs to an admission batch. Its semester updates automatically (odd semesters Aug–Jan, even Feb–Jul).</p>
+          <div class="formgrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:8px; margin-bottom:12px; align-items:end;">
             <div><select id="secDep"></select></div>
-            <div><input id="secName" placeholder="Section name (e.g. Section A)"></div>
+            <div><select id="secBatch"></select></div>
+            <div><input id="secName" placeholder="Section (e.g. A)"></div>
             <div><button class="btn primary" id="addSecBtn">Add section</button></div>
+          </div>
+          <div class="toolbar" style="justify-content:flex-start;">
+            <button class="btn small" id="bulkSecBtn">Add sections A + B for all 4 current batches</button>
           </div>
           <div id="sectionList" class="rows" style="margin-top:12px;"></div>
         </div>
@@ -84,7 +89,7 @@
 
         <div style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid #f5f5f5;">
           <h3 style="margin:0 0 12px 0; font-size:18px;">Student roster</h3>
-          <p class="small muted" style="margin:0 0 12px 0;">Upload CSV: reg_no, name, roll_no, dept, email, section_id</p>
+          <p class="small muted" style="margin:0 0 12px 0;">Upload CSV: reg_no, name, roll_no, dept, email, section, year — section is a letter (A/B) or section id; year is the admission year (2025 or 25)</p>
           <input type="file" id="rosterFile" accept=".csv" style="margin-bottom:12px; display:block; width:100%;">
           <div class="toolbar" style="justify-content:flex-start;"><button class="btn primary" id="importRoster">Import roster</button></div>
           <div id="rosterList" class="rows" style="margin-top:12px;"></div>

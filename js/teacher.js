@@ -45,7 +45,7 @@ function renderSubjects(){
     const n = allTopics.filter(t=>t.subject_id===s.id).length;
     const d = document.createElement("div");
     d.className = "rowline"; d.style.cursor = "default";
-    const secName = (mySections.find(x=>x.id===s.section_id)||{}).name || "";
+    const secName = sectionLabel(mySections.find(x=>x.id===s.section_id));
     d.innerHTML = `<span class="t">${esc(s.name)} <span class="s">${esc(s.code||"")} · ${esc(secName)} · ${n} topic(s) · mode: ${esc(s.assignment_mode||"single")}</span></span>
       <span><button class="linklike" data-act="ren">Rename</button> · <button class="linklike" data-act="del">Delete</button></span>`;
     d.querySelector('[data-act="ren"]').onclick = async ()=>{
@@ -61,7 +61,7 @@ function renderSubjects(){
   });
   if(!mySections.length) box.innerHTML = `<div class="alert bad">No sections are assigned to you yet. Ask an admin to assign your sections.</div>`;
   else if(!allSubjects.length) box.innerHTML = `<div class="muted small">No subjects yet.</div>`;
-  fillSelect($("subSec"), mySections, {placeholder: mySections.length ? "Pick section" : "No sections assigned"});
+  fillSelect($("subSec"), mySections, {placeholder: mySections.length ? "Pick section" : "No sections assigned", label: sectionLabel});
   fillSelect($("topicSub"), allSubjects);
   fillSelect($("fSub"), allSubjects, {placeholder:"All subjects"});
   fillSelect($("pubSub"), allSubjects);
