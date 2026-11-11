@@ -32,10 +32,11 @@
 </main>
 <script src="js/date.js" defer></script>
 <script>
-// The teacher's mark re-writes itself every few seconds with a different grade.
+// The teacher's mark wipes itself off, then the next grade writes itself in
+// on the very same frame, so there is never a blank pause between them.
 (function(){
   const mark = document.getElementById("heroMark");
-  if(!mark || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if(!mark || !mark.animate || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const grades = [
     ["18/20", "clear and well argued"],
     ["9/10", "neat working"],
@@ -44,16 +45,25 @@
     ["B+", "well structured"],
     ["15/20", "check your references"],
   ];
+  const SHOWN = "inset(0 0 0 0)";
+  const wipeOff = [{ clipPath: SHOWN }, { clipPath: "inset(0 0 0 100%)" }];   // erase left to right
+  const writeIn = [{ clipPath: "inset(0 100% 0 0)" }, { clipPath: SHOWN }];   // write left to right
   let i = 0;
-  setInterval(()=>{
-    if(document.hidden) return;
-    i = (i + 1) % grades.length;
-    mark.firstChild.textContent = grades[i][0];
-    mark.lastChild.textContent = grades[i][1];
-    mark.style.animation = "none";
-    void mark.offsetWidth;          // restart the write-in animation
-    mark.style.animation = "";
-  }, 4500);
+
+  function next(){
+    if(document.hidden){ setTimeout(next, 1000); return; }
+    mark.style.animation = "none";   // the page-load write-in has finished; scripted animations take over
+    mark.animate(wipeOff, { duration: 550, easing: "cubic-bezier(.5,0,.75,0)", fill: "forwards" }).finished.then(()=>{
+      i = (i + 1) % grades.length;
+      mark.firstChild.textContent = grades[i][0];
+      mark.lastChild.textContent = grades[i][1];
+      // Started synchronously in the same frame the wipe ends: no blank frame in between.
+      mark.getAnimations().forEach(a => a.cancel());
+      mark.animate(writeIn, { duration: 900, easing: "cubic-bezier(.6,0,.3,1)", fill: "forwards" });
+      setTimeout(next, 900 + 3600);  // write-in, then 3.6s to read it
+    });
+  }
+  setTimeout(next, 250 + 900 + 3600);  // after the page-load write-in has been on screen a while
 })();
 </script>
 </body>
