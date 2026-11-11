@@ -39,7 +39,7 @@ img{max-width:100%}
 }
 .brand{font-weight:700;font-size:20px;letter-spacing:-.01em}
 /* today's date, handwritten like the top of an exercise-book page */
-.brand-wrap{display:flex;align-items:center;gap:14px}
+.brand-wrap{display:flex;align-items:baseline;gap:14px}
 .today{font-family:var(--hand);font-size:18px;line-height:1;padding-right:14px;border-right:2px solid var(--ink);white-space:nowrap}
 .today:empty{display:none}
 .today-short{display:none}

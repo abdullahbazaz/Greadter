@@ -16,7 +16,7 @@
 </header>
 <main class="container">
   <section class="hero">
-    <p class="hero-mark" aria-hidden="true">18/20<small>clear and well argued</small></p>
+    <p class="hero-mark" id="heroMark" aria-hidden="true">18/20<small>clear and well argued</small></p>
     <h1>Hand in your work. Get it marked.</h1>
     <p>Students upload assignments for their section. Teachers review them, set the marks and publish grades when they're ready.</p>
     <div class="hero-actions">
@@ -31,5 +31,30 @@
   </ol>
 </main>
 <script src="js/date.js" defer></script>
+<script>
+// The teacher's mark re-writes itself every few seconds with a different grade.
+(function(){
+  const mark = document.getElementById("heroMark");
+  if(!mark || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const grades = [
+    ["18/20", "clear and well argued"],
+    ["9/10", "neat working"],
+    ["A−", "strong conclusion"],
+    ["27/30", "good use of sources"],
+    ["B+", "well structured"],
+    ["15/20", "check your references"],
+  ];
+  let i = 0;
+  setInterval(()=>{
+    if(document.hidden) return;
+    i = (i + 1) % grades.length;
+    mark.firstChild.textContent = grades[i][0];
+    mark.lastChild.textContent = grades[i][1];
+    mark.style.animation = "none";
+    void mark.offsetWidth;          // restart the write-in animation
+    mark.style.animation = "";
+  }, 4500);
+})();
+</script>
 </body>
 </html>
