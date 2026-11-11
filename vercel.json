@@ -1,13 +1,6 @@
 {
   "routes": [
-    { "src": "/api/(.*)", "dest": "/backend/$1.js" },
-    { "src": "/", "dest": "/index.html" },
-    { "src": "/api/download", "dest": "/backend/download.js" }
-  ],
-  "functions": {
-    "backend/*.js": {
-      "runtime": "nodejs@18.x"
-    }
-  }
+    { "src": "/api/(.*)", "dest": "/api/$1.js" },
+    { "src": "/", "dest": "/index.html" }
+  ]
 }
-
