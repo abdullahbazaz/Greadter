@@ -66,11 +66,11 @@ function renderSections(){
   sel.innerHTML = '<option value="">Pick section</option>';
   // Batch picker: the 4 batches currently in semesters 1–8.
   const bsel = $("secBatch"); const curB = bsel.value;
-  bsel.innerHTML = activeBatches().map(y=>`<option value="${y}">${y} batch · ${esc(semesterText(y))}</option>`).join("");
+  bsel.innerHTML = activeBatches().map(y=>`<option value="${y}">Admitted ${y}, ${esc(semesterText(y))}</option>`).join("");
   if(curB) bsel.value = curB;
   sections.forEach(s=>{
     const sem = semesterText(s.batch_year);
-    const d = row(`<span class="t">${esc(sectionLabel(s))} <span class="s">code ${esc(s.join_code)}${s.batch_year?"":" · no batch set"}</span></span>
+    const d = row(`<span class="t">${esc(sectionLabel(s))} <span class="s">join code ${esc(s.join_code)}${s.batch_year?"":", no admission year set"}</span></span>
       <span><button class="linklike">Delete</button></span>`);
     if(sem === "graduated") d.style.opacity = ".55";
     d.querySelector("button").onclick = async ()=>{
@@ -106,7 +106,7 @@ function renderPending(){
   const pending = teachers.filter(t=>t.status==="pending");
   if(!pending.length){ box.innerHTML = `<div class="muted small">None.</div>`; return; }
   pending.forEach(t=>{
-    const d = row(`<span class="t">${esc(t.name)}</span><span class="s">${esc(t.email)} · ${esc(t.dept)}</span>
+    const d = row(`<span class="t">${esc(t.name)}</span><span class="s">${esc(t.email)}, ${esc(t.dept)}</span>
       <span><button class="btn ok small" data-act="apr">Approve</button> <button class="btn danger small" data-act="rej">Reject</button></span>`);
     d.querySelector('[data-act="apr"]').onclick = async ()=>{ await post("/teacher_approve", { id:t.id, status:"active" }); await loadAll(); };
     d.querySelector('[data-act="rej"]').onclick = async ()=>{ await post("/teacher_approve", { id:t.id, status:"inactive" }); await loadAll(); };
@@ -119,7 +119,7 @@ function renderTeachers(){
   const box = $("teacherList"); box.innerHTML = "";
   teachers.forEach(t=>{
     const assigned = (t.section_ids||[]).map(secLabel).join(", ") || "no sections";
-    const d = row(`<span class="t">${esc(t.name)} <span class="s">${esc(t.email)} · ${esc(t.status)} · ${esc(assigned)}</span></span>
+    const d = row(`<span class="t">${esc(t.name)} <span class="s">${esc(t.email)}, ${esc(t.status)}. Teaches: ${esc(assigned)}</span></span>
       <span><button class="linklike">Assign sections</button></span>`);
     const picker = document.createElement("div");
     picker.className = "topic"; picker.hidden = true;
@@ -147,7 +147,7 @@ function renderTeachers(){
 function renderSubjects(){
   const box = $("subjectList"); box.innerHTML = "";
   subjects.forEach(s=>{
-    const d = row(`<span class="t">${esc(s.name)} <span class="s">${esc(s.code||"")} · ${esc(s.section_id?secLabel(s.section_id):"no section")} · mode: ${esc(s.assignment_mode||"single")}</span></span>
+    const d = row(`<span class="t">${esc(s.name)} <span class="s">${esc([s.code, s.section_id?secLabel(s.section_id):"no section", (s.assignment_mode||"single")+" topic mode"].filter(Boolean).join(", "))}</span></span>
       <span><button class="linklike">Delete</button></span>`);
     d.querySelector("button").onclick = async ()=>{
       if(!confirm(`Delete subject "${s.name}"? This also deletes its topics and submissions.`)) return;
@@ -196,7 +196,7 @@ function renderAccounts(){
   if(!teachers.length){ box.innerHTML = `<div class="muted small">None.</div>`; return; }
   teachers.forEach(a=>{
     const active = a.status==="active";
-    const d = row(`<span class="t">${esc(a.name||"")} <span class="s">teacher · ${esc(a.email||"")} · ${esc(a.status)}</span></span>
+    const d = row(`<span class="t">${esc(a.name||"")} <span class="s">${esc(a.email||"")}, ${esc(a.status)}</span></span>
       <span><button class="btn ${active?"danger":"ok"} small">${active?"Deactivate":"Activate"}</button></span>`);
     d.querySelector("button").onclick = async ()=>{
       await post("/teacher_approve", { id:a.id, status: active?"inactive":"active" });

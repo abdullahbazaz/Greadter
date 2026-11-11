@@ -6,3 +6,6 @@ package-lock.json
 
 .DS_Store
 Thumbs.db
+
+# Locally cloned agent skills (installed into ~/.claude/skills)
+skills/

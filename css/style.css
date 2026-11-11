@@ -1,115 +1,268 @@
-/* Greadter — Apple-style minimal. Flat, hairlines, Helvetica. No boxed cards. */
+/* Greadter — the marked exercise book.
+   Cream ruled paper, black ink, a double red margin line, and red-pen marks.
+   Atkinson Hyperlegible for everything; Kalam ("pen") only for handwritten marks. */
 :root{
-  --ink:#1d1d1f; --sub:#6e6e73; --line:#d2d2d7; --bg:#F5EFD6;
-  --blue:#0071e3; --red:#bf4800; --green:#1d8127; --amber:#9a6a00;
+  --paper:#F3ECD8;        /* cream page */
+  --paper-hi:#FAF6EA;     /* lighter sheet: inputs, cards */
+  --ink:#000000;          /* text */
+  --pencil:#5A5345;       /* secondary text (7.0:1 on paper) */
+  --rule:#C9CFD3;         /* ruled lines */
+  --red:#B3212B;          /* margin line, marks, danger (5.9:1 on paper) */
+  --highlight:#F4D35E;    /* flags + focus */
+  --highlight-pink:#F5B8C4;
+  --green:#2E6B3B;        /* published / approve (6.0:1 on paper) */
+  --margin:64px;          /* page edge → red margin line */
+  --gutter:28px;          /* red margin line → text */
+  --hand:"Kalam","Segoe Print","Bradley Hand",cursive;
+  --body:"Atkinson Hyperlegible",-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  color-scheme:light;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
-  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
-::selection{background:#e8e8ed}
+body{
+  margin:0;color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  background-color:var(--paper);
+  /* ruled paper */
+  background-image:linear-gradient(var(--rule) 1px,transparent 1px);
+  background-size:100% 32px;background-position:0 31px;
+}
+::selection{background:var(--highlight)}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px;box-shadow:0 0 0 6px var(--highlight)}
+img{max-width:100%}
 
-/* top nav — thin translucent, like apple.com */
-.topbar{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;
-  padding:10px 22px;background:#000000;backdrop-filter:saturate(180%) blur(20px);
-  border-bottom:1px solid var(--line)}
-.brand{font-size:15px;font-weight:600;letter-spacing:-.01em}
-.topbar nav a{color:var(--ink);opacity:.7;text-decoration:none;font-size:13px;margin-left:20px}
-.topbar nav a.active,.topbar nav a:hover{opacity:1}
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky;top:env(safe-area-inset-top,0px);z-index:20;
+  display:flex;justify-content:space-between;align-items:center;gap:16px;
+  padding:14px max(16px,calc((100vw - 960px) / 2 + 16px));
+  background:var(--paper);border-bottom:2px solid var(--ink);
+}
+.brand{font-weight:700;font-size:20px;letter-spacing:-.01em}
+.topbar nav a{color:var(--ink);font-size:15px;margin-left:20px;text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:4px;text-decoration-thickness:2px}
+.topbar nav a:hover{text-decoration-color:var(--red)}
 
-.container{max-width:720px;margin:0 auto;padding:32px 22px 80px}
+/* ---------- page with red margin line ---------- */
+.container{
+  position:relative;max-width:960px;margin:0 auto;min-height:calc(100vh - 56px);
+  padding:40px 16px 96px calc(var(--margin) + var(--gutter));
+}
+.container::before{
+  content:"";position:absolute;top:0;bottom:0;left:var(--margin);width:4px;
+  background:linear-gradient(90deg,var(--red) 0 1px,transparent 1px 3px,var(--red) 3px 4px);
+  opacity:.75;pointer-events:none;
+}
+.container > *{max-width:760px}
 
-/* hero — product page style */
-.hero{text-align:center;padding:56px 0 32px}
-.hero h1{font-size:44px;line-height:1.08;letter-spacing:-.02em;font-weight:600;margin:0 0 10px}
-.hero p{color:var(--sub);font-size:19px;margin:0 0 22px}
-.hero-actions{display:flex;gap:16px;justify-content:center}
-.link{color:var(--blue);text-decoration:none;font-size:15px}
-.link:hover{text-decoration:underline}
+/* ---------- headings & text ---------- */
+h1,h2,h3,h4{margin:0;line-height:1.2;font-weight:700}
+h1{font-size:39px;letter-spacing:-.02em}
+h3{font-size:20px;margin-bottom:12px}
+p{margin:0 0 12px}
+.small{font-size:14px}
+.muted{color:var(--pencil)}
+.lede{font-size:18px;color:var(--pencil);max-width:60ch}
 
-/* apple pill buttons only — no boxed cards anywhere */
-.btn{display:inline-block;border:1px solid var(--line);background:#fff;color:var(--blue);
-  border-radius:980px;padding:7px 18px;font-size:14px;cursor:pointer;text-decoration:none}
-.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
-.btn.danger{background:#fff;color:#b00020;border-color:#e3b4b8}
-.btn.ok{background:#fff;color:var(--green);border-color:#bcd8bf}
-.btn.small{padding:4px 13px;font-size:13px}
-.btn:disabled{opacity:.4;cursor:default}
-button.linklike{background:none;border:none;color:var(--blue);font-size:14px;cursor:pointer;padding:0}
+/* ---------- hero ---------- */
+.hero{position:relative;padding:24px 0 40px}
+.hero h1{font-size:49px;line-height:1.08;max-width:14ch}
+.hero p{font-size:20px;color:var(--pencil);max-width:46ch;margin:16px 0 0}
+.hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+/* The teacher's mark: the one loud thing on the page. */
+.hero .hero-mark{
+  position:absolute;right:0;top:8px;margin:0;transform:rotate(-7deg);transform-origin:left center;
+  font-family:var(--hand);color:var(--red);font-size:56px;line-height:1;text-align:center;
+  animation:write 900ms 250ms cubic-bezier(.6,0,.3,1) both;
+}
+.hero .hero-mark small{display:block;font-size:26px;margin-top:4px}
+@keyframes write{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
 
-/* collapsible sections — hairlines, chevron, no boxes */
-.sec{border-top:1px solid var(--line);padding:0}
-.sec:last-of-type{border-bottom:1px solid var(--line)}
-.sec>summary{list-style:none;display:flex;justify-content:space-between;align-items:baseline;
-  cursor:pointer;padding:18px 0;font-size:21px;font-weight:600;letter-spacing:-.01em}
+/* ---------- links & buttons ---------- */
+.link{color:var(--ink);text-decoration:underline;text-decoration-color:var(--red);text-decoration-thickness:2px;text-underline-offset:4px}
+.link:hover{color:var(--red)}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:44px;padding:9px 20px;border:2px solid var(--ink);border-radius:3px;
+  background:transparent;color:var(--ink);font:inherit;font-size:16px;font-weight:700;
+  text-decoration:none;cursor:pointer;transition:background-color .12s,color .12s,border-color .12s,transform .06s;
+}
+.btn:hover{background:var(--ink);color:var(--paper)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--ink);color:var(--paper)}
+.btn.primary:hover{background:var(--red);border-color:var(--red)}
+.btn.ok{border-color:var(--green);color:var(--green)}
+.btn.ok:hover{background:var(--green);color:var(--paper)}
+.btn.danger{border-color:var(--red);color:var(--red)}
+.btn.danger:hover{background:var(--red);color:var(--paper)}
+.btn.small{min-height:36px;padding:5px 14px;font-size:14px}
+.btn:disabled,.btn:disabled:hover{background:transparent;color:var(--pencil);border-color:var(--rule);border-style:dashed;cursor:not-allowed;transform:none}
+.btn.primary:disabled{background:var(--rule);color:var(--pencil);border-style:solid}
+
+button.linklike{
+  background:none;border:none;padding:4px 0;font:inherit;font-size:15px;color:var(--ink);cursor:pointer;
+  text-decoration:underline;text-decoration-color:var(--red);text-decoration-thickness:2px;text-underline-offset:4px;
+}
+button.linklike:hover{color:var(--red)}
+
+/* ---------- sections (details) ---------- */
+.sec{border-top:2px solid var(--ink)}
+.sec:last-of-type{border-bottom:2px solid var(--ink)}
+.sec>summary{
+  position:relative;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:16px 0;cursor:pointer;font-size:25px;font-weight:700;
+}
 .sec>summary::-webkit-details-marker{display:none}
-.sec>summary .n{color:var(--sub);font-weight:400;font-size:13px;margin-right:10px}
-.sec>summary .chev{color:var(--sub);font-size:14px;font-weight:400}
-.sec[open]>summary .chev{transform:rotate(90deg);display:inline-block}
-.sec .body{padding:0 0 26px}
-.sec .lede{color:var(--sub);font-size:14px;margin:0 0 14px}
+.sec>summary:hover{color:var(--red)}
+/* Step numbers sit in the margin, like question numbers in an exercise book. */
+.sec>summary .n{
+  position:absolute;left:calc(-1 * var(--gutter) - 46px);width:36px;text-align:right;
+  font-family:var(--hand);font-weight:700;font-size:30px;color:var(--red);
+}
+.sec>summary .chev{font-size:22px;font-weight:400;transition:transform .15s}
+.sec[open]>summary .chev{transform:rotate(90deg)}
+.sec .body{padding:4px 0 32px}
 
-/* flat list rows */
-.rows{margin:0;padding:0;list-style:none}
-.rowline{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
-  padding:11px 0;border-top:1px solid #e8e8ed;cursor:pointer}
-.rowline:first-child{border-top:none}
-.rowline .t{font-weight:500}
-.rowline .s{color:var(--sub);font-size:13px}
-.rowline.sel .t{color:var(--blue)}
-.rowline.sel::after{content:"✓";color:var(--blue);font-size:13px}
+/* ---------- list rows ---------- */
+.rows{margin:0;padding:0}
+.rowline{
+  display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 16px;
+  padding:12px 12px 12px 14px;border-bottom:1px solid var(--rule);border-left:4px solid transparent;cursor:pointer;
+}
+.rowline:hover{background:var(--paper-hi)}
+.rowline .t{font-weight:700}
+.rowline .s{color:var(--pencil);font-size:14px;font-weight:400}
+.rowline.sel{border-left-color:var(--ink);background:var(--paper-hi)}
+.rowline.sel::after{content:"✓";font-family:var(--hand);font-weight:700;font-size:22px;color:var(--red);line-height:1}
 
-/* topic disclosure inside lists */
-.topic{border-top:1px solid #e8e8ed;padding:12px 0}
-.topic:first-child{border-top:none}
-.topic h4{margin:0 0 2px;font-size:16px;font-weight:600}
-.topic .spec{color:var(--sub);font-size:13px;margin:0 0 6px}
-.topic p{margin:4px 0;font-size:14px}
-.topic p b{font-weight:600}
+/* ---------- topic sheets ---------- */
+.topic{background:var(--paper-hi);border:1px solid var(--rule);border-radius:2px;padding:16px 18px;margin:0 0 12px}
+.topic.sel{border:2px solid var(--ink);padding:15px 17px}
+.topic h4{font-size:18px;margin:0 0 4px}
+.topic .spec{color:var(--pencil);font-size:14px;margin:0 0 8px}
+.topic p{margin:4px 0;font-size:15px}
+#topicList > h4{font-size:16px;margin:16px 0 8px}
 
-/* tables — hairlines only */
-table{width:100%;border-collapse:collapse;font-size:13.5px}
-th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--sub);font-weight:500;
-  text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
-td{padding:9px 6px;border-bottom:1px solid #e8e8ed;vertical-align:top}
+/* ---------- tables ---------- */
+.table-wrap{overflow-x:auto;margin:8px 0}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{font-size:14px;font-weight:700;text-align:left;padding:10px 8px;border-bottom:2px solid var(--ink);white-space:nowrap}
+td{padding:10px 8px;border-bottom:1px solid var(--rule);vertical-align:top}
+tr:hover td{background:rgba(250,246,234,.7)}
 
-/* status — text + dot, no pills */
-.tag{font-size:12.5px;color:var(--sub);margin-right:10px;white-space:nowrap}
-.tag::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:#a1a1a6;margin-right:6px;vertical-align:1px}
-.tag.sim::before,.tag.late::before{background:#b00020}
-.tag.sim,.tag.late{color:#b00020}
-.tag.pub::before{background:var(--green)} .tag.pub{color:var(--green)}
-.tag.ocr::before{background:#e6a800} .tag.ocr{color:var(--amber)}
-.tag.unpub::before{background:#a1a1a6}
+/* ---------- status tags ---------- */
+.tag{display:inline-block;font-size:13px;font-weight:700;padding:1px 7px;border-radius:2px;margin:0 6px 4px 0;white-space:nowrap}
+.tag.pub{color:var(--green)}
+.tag.pub::before{content:"✓ "}
+.tag.unpub{color:var(--pencil);font-weight:400}
+.tag.late,.tag.ocr{background:var(--highlight);color:var(--ink)}
+.tag.sim{background:var(--highlight-pink);color:var(--ink)}
 
-/* feedback — plain indented notes */
-.feedback-wrong,.feedback-ok,.feedback-low{border-top:1px solid #e8e8ed;padding:8px 0 8px 14px;font-size:14px}
-.feedback-wrong{border-left:2px solid #b00020}
-.feedback-ok{border-left:2px solid var(--green)}
-.feedback-low{border-left:2px solid #e6a800}
-.small{font-size:13px} .muted{color:var(--sub)}
+/* A grade, written in red pen. */
+.mark{font-family:var(--hand);font-weight:700;font-size:24px;color:var(--red);line-height:1}
 
-/* forms — square, hairline */
-label{display:block;font-size:13px;font-weight:500;margin:12px 0 4px}
-input,select,textarea{width:100%;border:1px solid var(--line);border-radius:0;background:#fff;
-  padding:9px 10px;font-size:14px;font-family:inherit;margin:0 0 4px;color:var(--ink)}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
+/* ---------- feedback as margin notes ---------- */
+.feedback-wrong,.feedback-ok,.feedback-low{padding:8px 0 8px 14px;margin:8px 0;font-size:15px;border-left:3px solid}
+.feedback-wrong{border-color:var(--red)}
+.feedback-ok{border-color:var(--green)}
+.feedback-low{border-color:var(--highlight);background:rgba(244,211,94,.18)}
+
+/* ---------- forms ---------- */
+label{display:block;font-size:15px;font-weight:700;margin:16px 0 4px}
+input,select,textarea{
+  width:100%;min-height:44px;margin:0 0 8px;padding:10px 12px;
+  font:inherit;font-size:16px;color:var(--ink);
+  background:var(--paper-hi);border:none;border-bottom:2px solid var(--ink);border-radius:0;
+}
+textarea{min-height:88px;resize:vertical}
+select{
+  appearance:none;-webkit-appearance:none;padding-right:40px;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;
+}
+input::placeholder,textarea::placeholder{color:var(--pencil);opacity:1}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;box-shadow:none;border-bottom-color:var(--red);background:#fff}
+input:disabled,select:disabled,textarea:disabled{border-bottom-style:dashed;border-bottom-color:var(--pencil);color:var(--pencil);cursor:not-allowed}
+input[readonly]{background:transparent;color:var(--pencil);border-bottom:1px solid var(--rule)}
+input[type="checkbox"],input[type="radio"]{width:20px;height:20px;min-height:0;margin:0 8px 0 0;vertical-align:-4px;accent-color:var(--ink)}
+input[type="file"]{border-bottom:none;background:transparent;padding:8px 0}
 .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
-@media(max-width:640px){.formgrid{grid-template-columns:1fr}.hero h1{font-size:32px}}
-.toolbar{display:flex;gap:14px;align-items:center;margin:12px 0;flex-wrap:wrap}
-.drop{border:1px dashed #a1a1a6;padding:26px;text-align:center;color:var(--sub);font-size:14px;cursor:pointer;margin-top:10px}
-.drop.dragover{border-color:var(--blue);color:var(--blue)}
-.note{font-size:13px;color:var(--sub);padding:10px 0;border-top:1px solid #e8e8ed}
-.alert{font-size:13.5px;color:var(--sub);padding:8px 0}
-.alert.bad{color:#b00020} .alert.ok{color:var(--green)}
-pre.preview{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:#f5f5f7;
-  padding:14px;overflow:auto;max-height:280px;white-space:pre-wrap;margin:10px 0 0}
-.footer{text-align:center;color:var(--sub);font-size:12px;padding:28px;border-top:1px solid var(--line)}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.32);display:none;align-items:center;justify-content:center;z-index:50}
+.toolbar{display:flex;gap:12px;align-items:center;margin:16px 0;flex-wrap:wrap}
+
+.roll-wrapper{display:flex;align-items:stretch}
+.roll-prefix{display:flex;align-items:center;padding:0 10px;margin-bottom:8px;font-weight:700;border-bottom:2px solid var(--ink);background:var(--paper)}
+.roll-prefix:empty{display:none}
+
+/* upload tray */
+.drop{
+  margin-top:8px;padding:28px 16px;text-align:center;cursor:pointer;
+  border:2px dashed var(--ink);border-radius:3px;color:var(--pencil);font-weight:700;
+}
+.drop:hover,.drop.dragover{background:var(--highlight);color:var(--ink);border-style:solid}
+
+/* ---------- messages ---------- */
+.alert{font-size:15px;padding:10px 14px;margin:8px 0;border-left:3px solid var(--pencil);background:var(--paper-hi)}
+.alert.bad{border-color:var(--red);color:var(--red)}
+.alert.ok{border-color:var(--green);color:var(--green)}
+.note{font-size:15px;padding:16px 0;margin:24px 0 0}
+pre.preview{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.5;
+  background:var(--paper-hi);border:1px solid var(--rule);padding:14px;margin:12px 0 0;
+  max-height:300px;overflow:auto;white-space:pre-wrap;
+}
+pre.preview:empty{display:none}
+
+/* ---------- modal ---------- */
+.modal-bg{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.4)}
 .modal-bg.show{display:flex}
-.modal{background:#fff;padding:24px;max-width:420px;width:92%}
-.grid.two{display:grid;grid-template-columns:1fr 1fr;gap:0 32px}
-@media(max-width:640px){.grid.two{grid-template-columns:1fr}}
-/* legacy .card hooks from JS — forced flat */
-.card{background:none;border:none;border-radius:0;padding:0}
+.modal{width:100%;max-width:440px;padding:24px;background:var(--paper);border:2px solid var(--ink)}
+.modal h3{margin:0 0 8px}
+
+/* ---------- how it works (home): a real sequence, numbered in the margin ---------- */
+.steps{list-style:none;margin:8px 0 0;padding:0;counter-reset:step}
+.steps li{position:relative;counter-increment:step;padding:16px 0;border-top:1px solid var(--rule)}
+.steps li::before{
+  content:counter(step);position:absolute;left:calc(-1 * var(--gutter) - 46px);width:36px;text-align:right;
+  font-family:var(--hand);font-weight:700;font-size:30px;line-height:1.1;color:var(--red);
+}
+.steps h2{font-size:20px;margin:0 0 4px}
+.steps p{margin:0;color:var(--pencil);max-width:60ch}
+
+/* ---------- auth pages: a narrow form column ---------- */
+.form-col{max-width:420px;margin-top:24px}
+.form-col .toolbar{margin-top:20px}
+
+/* ---------- admin: blocks on one long sheet ---------- */
+.admin-block{padding:24px 0;border-top:2px solid var(--ink)}
+.admin-block:first-child{border-top:none;padding-top:0}
+.admin-block .formgrid{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));align-items:end}
+.admin-block .rowline{cursor:default}
+.admin-block .formgrid .btn{margin-bottom:8px;width:100%}
+.admin-footer{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:32px}
+
+/* ---------- small screens: narrow margin, numbers move inline ---------- */
+@media (max-width:720px){
+  :root{--margin:14px;--gutter:18px}
+  .container{padding-top:28px}
+  h1{font-size:31px}
+  .hero h1{font-size:36px}
+  .hero p{font-size:18px}
+  .hero .hero-mark{position:static;display:inline-block;margin:0 0 16px;font-size:44px;transform:rotate(-4deg)}
+  .sec>summary{font-size:21px}
+  .sec>summary .n{position:static;width:auto;margin-right:10px;font-size:24px}
+  .sec>summary>span:first-child{display:flex;align-items:baseline}
+  .steps li{padding-left:34px}
+  .steps li::before{left:0;width:24px;text-align:left;font-size:24px}
+  .formgrid{grid-template-columns:1fr}
+  .topbar nav a{margin-left:12px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+
+/* tables rendered by the page scripts scroll sideways on phones */
+#marksheet,#reviewList,#simGroups .topic{overflow-x:auto}
+
+/* The drop area is the visible file picker; the real input stays keyboard-reachable. */
+#fileInput{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;min-height:0}
+#fileInput:focus-visible + .drop{outline:2px solid var(--ink);outline-offset:2px;box-shadow:0 0 0 6px var(--highlight)}

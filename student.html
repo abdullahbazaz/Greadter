@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Student — Greadter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Your assignments - Greadter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Kalam:wght@400;700&display=swap">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -13,17 +16,17 @@
 </header>
 <main class="container">
   <details class="sec" open>
-    <summary><span><span class="n">01</span>Subject</span><span class="chev">›</span></summary>
+    <summary><span><span class="n">1</span>Choose a subject</span><span class="chev">›</span></summary>
     <div class="body"><div id="subjectGrid" class="rows"></div></div>
   </details>
 
   <details class="sec" open>
-    <summary><span><span class="n">02</span>Topic</span><span class="chev">›</span></summary>
+    <summary><span><span class="n">2</span>Choose a topic</span><span class="chev">›</span></summary>
     <div class="body"><div id="topicList"></div></div>
   </details>
 
   <details class="sec" open>
-    <summary><span><span class="n">03</span>Upload</span><span class="chev">›</span></summary>
+    <summary><span><span class="n">3</span>Upload your work</span><span class="chev">›</span></summary>
     <div class="body">
       <p class="lede" id="uploadTopicInfo"></p>
       <input id="stuName" placeholder="Name" readonly>
@@ -38,21 +41,21 @@
         <option value="CE">CE</option>
       </select>
       <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.odt,.rtf">
-      <div class="drop" id="dropZone">Drop files here</div>
-      <div class="small muted">PDF, Word, PowerPoint, TXT only.</div>
-      <div id="fileList" class="small muted" style="margin-top:8px"></div>
+      <div class="drop" id="dropZone">Drop files here, or click to choose</div>
+      <div class="small muted">PDF, Word, PowerPoint, OpenDocument, RTF or TXT, up to 25 MB each.</div>
+      <div id="fileList" class="small muted"></div>
       <div id="uploadMsg"></div>
-      <div class="toolbar"><button class="btn primary" id="uploadBtn" disabled>Upload</button></div>
+      <div class="toolbar"><button class="btn primary" id="uploadBtn" disabled>Upload files</button></div>
     </div>
   </details>
 
   <details class="sec" open>
-    <summary><span><span class="n">04</span>Marks</span><span class="chev">›</span></summary>
+    <summary><span>Your marks</span><span class="chev">›</span></summary>
     <div class="body"><div id="marksheet"></div></div>
   </details>
 
   <details class="sec">
-    <summary><span><span class="n">05</span>Files</span><span class="chev">›</span></summary>
+    <summary><span>Your submissions</span><span class="chev">›</span></summary>
     <div class="body"><div id="mySubs"></div></div>
   </details>
 

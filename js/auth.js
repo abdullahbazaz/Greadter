@@ -88,10 +88,11 @@ function semesterText(batchYear){
   const sem = semesterOf(batchYear);
   return sem == null ? "" : sem > SEMESTERS ? "graduated" : sem < 1 ? "not started" : `Sem ${sem}`;
 }
-// "CSE 2025 · A · Sem 3"
+// "CSE 2025 A, Sem 3"
 function sectionLabel(s){
   if(!s) return "";
-  return [s.dept_code, s.batch_year, s.name, semesterText(s.batch_year)].filter(Boolean).join(" · ").replace(/^(\w+) · (\d{4})/, "$1 $2");
+  const sem = semesterText(s.batch_year);
+  return [s.dept_code, s.batch_year, s.name].filter(Boolean).join(" ") + (sem ? `, ${sem}` : "");
 }
 const downloadSubmission = s => downloadAuthed(`/download?id=${encodeURIComponent(s.id)}`, s.file_name || "submission");
 

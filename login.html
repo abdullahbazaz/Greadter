@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Log in — Greadter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Log in - Greadter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Kalam:wght@400;700&display=swap">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -12,8 +15,8 @@
   <nav><a href="index.html">Home</a></nav>
 </header>
 <main class="container">
-  <section class="hero" style="padding:32px 0 12px">
-    <h1 style="font-size:34px">Log in</h1>
+  <section class="hero">
+    <h1>Log in</h1>
   </section>
 
   <details class="sec" id="sec-student">
@@ -22,7 +25,7 @@
       <input id="stuReg" placeholder="Registration no." autocomplete="off">
       <input id="stuPass" type="password" placeholder="Password" autocomplete="current-password">
       <div class="toolbar"><button class="btn primary" id="loginStudent">Log in</button></div>
-      <p class="small muted">New student? <a class="link" href="signup.html?role=student">Sign up →</a></p>
+      <p class="small muted">New student? <a class="link" href="signup.html?role=student">Sign up</a></p>
     </div>
   </details>
 
@@ -32,7 +35,7 @@
       <input id="tchEmail" placeholder="University email" autocomplete="off">
       <input id="tchPass" type="password" placeholder="Password" autocomplete="current-password">
       <div class="toolbar"><button class="btn primary" id="loginTeacher">Log in</button></div>
-      <p class="small muted">New teacher? <a class="link" href="signup.html?role=teacher">Sign up →</a></p>
+      <p class="small muted">New teacher? <a class="link" href="signup.html?role=teacher">Sign up</a></p>
     </div>
   </details>
 
@@ -45,7 +48,7 @@
     </div>
   </details>
 
-  <p class="note"><a class="link" href="index.html">← Back to home</a></p>
+  <p class="note"><a class="link" href="index.html">Back to home</a></p>
 </main>
 <script src="js/auth.js"></script>
 <script>

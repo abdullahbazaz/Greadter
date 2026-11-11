@@ -46,8 +46,8 @@ function renderSubjects(){
     const d = document.createElement("div");
     d.className = "rowline"; d.style.cursor = "default";
     const secName = sectionLabel(mySections.find(x=>x.id===s.section_id));
-    d.innerHTML = `<span class="t">${esc(s.name)} <span class="s">${esc(s.code||"")} · ${esc(secName)} · ${n} topic(s) · mode: ${esc(s.assignment_mode||"single")}</span></span>
-      <span><button class="linklike" data-act="ren">Rename</button> · <button class="linklike" data-act="del">Delete</button></span>`;
+    d.innerHTML = `<span class="t">${esc(s.name)} <span class="s">${esc([s.code, secName, `${n} ${n===1?"topic":"topics"}`, (s.assignment_mode||"single")+" topic mode"].filter(Boolean).join(", "))}</span></span>
+      <span><span class="toolbar" style="margin:0"><button class="linklike" data-act="ren">Rename</button><button class="linklike" data-act="del">Delete</button></span></span>`;
     d.querySelector('[data-act="ren"]').onclick = async ()=>{
       const v = prompt("New subject name:", s.name); if(!v || !v.trim()) return;
       const r = await api("/subjects", { method:"POST", body: JSON.stringify({ id: s.id, name: v.trim() }) });
@@ -94,7 +94,7 @@ function renderTopics(){
     const d = document.createElement("div");
     d.className = "topic";
     d.innerHTML = `<h4>${esc(t.title)}</h4>
-      <p class="spec">${esc(t.total_marks ?? "—")} marks · ${esc(fmtDate(t.deadline))}</p>
+      <p class="spec">${esc(t.total_marks ?? "—")} marks${t.deadline?`, due ${esc(fmtDate(t.deadline))}`:""}</p>
       <p class="small muted">${esc(t.overview||"")}</p><p class="small muted">${esc(t.requirements||"")}</p>
       <div class="toolbar"><button class="linklike" data-a="e">Edit</button><button class="linklike" data-a="d">Delete</button></div>`;
     d.querySelector('[data-a="d"]').onclick = async ()=>{
@@ -141,13 +141,13 @@ function filteredSubs(){
 }
 
 function renderSubs(){
-  let h = `<tr><th></th><th>Student (roll / reg)</th><th>Subject → Topic</th><th>File</th><th>Flags</th><th>Marks</th><th>Actions</th></tr>`;
+  let h = `<tr><th></th><th>Student (roll / reg)</th><th>Subject and topic</th><th>File</th><th>Flags</th><th>Marks</th><th>Actions</th></tr>`;
   const rows = filteredSubs();
   rows.forEach(s=>{
     h += `<tr><td><input type="checkbox" data-id="${esc(s.id)}" ${checked.has(s.id)?"checked":""}></td>
-      <td><b>${esc(s.student_name)}</b><br><span class="small muted">Roll ${esc(s.roll_no)} · ${esc(s.reg_no)}</span></td>
-      <td>${esc(s.subject_name||"")} → ${esc(s.topic_title||"")}<br><span class="small muted">${esc(fmtTime(s.submitted_at))}</span></td>
-      <td>${esc(s.file_name)}<br><span class="small muted">${esc(s.file_type||"")} · ${esc(s.size_kb||0)}KB</span></td>
+      <td><b>${esc(s.student_name)}</b><br><span class="small muted">Roll ${esc(s.roll_no)}, reg. ${esc(s.reg_no)}</span></td>
+      <td>${esc(s.subject_name||"")}<br>${esc(s.topic_title||"")}<br><span class="small muted">${esc(fmtTime(s.submitted_at))}</span></td>
+      <td>${esc(s.file_name)}<br><span class="small muted">${esc(s.file_type||"")}, ${esc(s.size_kb||0)} KB</span></td>
       <td>${s.late?'<span class="tag late">late</span>':""} ${ocrTag(s)} ${s.similarity_group?`<span class="tag sim">${esc(s.similarity_group)} ${esc(s.similarity_pct)}%</span>`:""} ${s.published?'<span class="tag pub">published</span>':'<span class="tag unpub">unpublished</span>'}</td>
       <td>AI ${esc(s.ai_marks??"—")} / T ${esc(s.teacher_marks??"—")}</td>
       <td><button class="btn small" data-view="${esc(s.id)}">View</button> <button class="btn small" data-dl="${esc(s.id)}">Download</button></td></tr>`;
@@ -186,7 +186,7 @@ function renderSim(){
       const names = (Array.isArray(s.similarity_with)?s.similarity_with:[]).map(id=>{ const o=allSubmissions.find(x=>x.id===id); return o?`${esc(o.student_name)} (roll ${esc(o.roll_no)})`:esc(id); }).join(", ")||"—";
       return `<tr><td><b>${esc(s.student_name)}</b> roll ${esc(s.roll_no)}</td><td>${esc(s.file_name)}</td><td>${names}</td><td><b>${esc(s.similarity_pct)}%</b></td></tr>`;
     }).join("")}</table>
-      <p class="small muted">Teacher action: open Review → override / publish per student.</p>`;
+      <p class="small muted">Check these files side by side, then set marks in Review and mark.</p>`;
     box.appendChild(d);
   });
 }
@@ -198,7 +198,7 @@ function renderReview(){
   fillSelect($("gradeSub"), q, {label:s=>`${s.student_name} (roll ${s.roll_no}) — ${s.file_name} — AI ${s.ai_marks??"—"}`});
   if(!q.length){ box.innerHTML = `<div class="muted small">None.</div>`; return; }
   box.innerHTML = `<table><tr><th>Priority</th><th>Submission</th><th>OCR</th><th>AI marks</th><th>Status</th></tr>` + q.map((s,i)=>
-    `<tr><td>#${i+1}</td><td><b>${esc(s.student_name)}</b> roll ${esc(s.roll_no)} · ${esc(s.file_name)}</td>
+    `<tr><td>#${i+1}</td><td><b>${esc(s.student_name)}</b> roll ${esc(s.roll_no)}<br><span class="small muted">${esc(s.file_name)}</span></td>
       <td>${s.ocr_confidence==null?"—":s.ocr_confidence<80?`<span class="tag ocr">${esc(s.ocr_confidence)}% check</span>`:esc(s.ocr_confidence)+"%"}</td>
       <td>${esc(s.ai_marks??"—")}</td>
       <td>${s.published?'<span class="tag pub">published</span>':'<span class="tag unpub">unpublished</span>'}</td></tr>`).join("") + "</table>";

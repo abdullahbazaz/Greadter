@@ -73,10 +73,10 @@ function topicCard(t, {selectable, showOverview=true}){
   const card = document.createElement("div");
   card.className = "topic" + (t.id===selectedTopic?" sel":"");
   card.innerHTML = `<h4>${esc(t.title)}</h4>
-    <p class="spec">${esc(t.total_marks ?? "—")} marks · ${esc(fmtDate(t.deadline) || "—")}</p>
+    <p class="spec">${esc(t.total_marks ?? "—")} marks${t.deadline?`, due ${esc(fmtDate(t.deadline))}`:""}</p>
     ${showOverview?`<p class="small muted">${esc(t.overview||"")}</p>`:""}
     <p class="small muted">${esc(t.requirements||"")}</p>
-    ${selectable?`<button class="linklike">Select ›</button>`:""}`;
+    ${selectable?`<button class="linklike">${t.id===selectedTopic?"Selected":"Choose this topic"}</button>`:""}`;
   if(selectable) card.querySelector("button").onclick = ()=>{ selectedTopic=t.id; selectedCustomTopic=null; renderAll(); };
   return card;
 }
@@ -227,7 +227,7 @@ function renderMarksheet(){
   const pub = mySubs.filter(s=>s.published && s.teacher_marks!=null);
   if(!pub.length){ box.innerHTML = `<div class="muted small">No published marks yet.</div>`; return; }
   box.innerHTML = `<table><tr><th>Subject</th><th>Topic</th><th>File</th><th>Marks</th><th>Status</th></tr>` +
-    pub.map(s=>`<tr><td>${esc(s.subject_name||"")}</td><td>${esc(s.topic_title||"")}</td><td>${esc(s.file_name)}</td><td><b>${esc(s.teacher_marks)}</b></td><td><span class="tag pub">published</span>${s.late?' <span class="tag late">late</span>':""}</td></tr>`).join("") +
+    pub.map(s=>`<tr><td>${esc(s.subject_name||"")}</td><td>${esc(s.topic_title||"")}</td><td>${esc(s.file_name)}</td><td><span class="mark">${esc(s.teacher_marks)}</span></td><td><span class="tag pub">published</span>${s.late?' <span class="tag late">late</span>':""}</td></tr>`).join("") +
     `</table>`;
 }
 
@@ -246,7 +246,7 @@ function renderMySubs(){
     const d = document.createElement("div");
     d.className = "topic";
     d.innerHTML = `<h4>${esc(s.file_name)}</h4>
-      <p class="spec">${esc(s.subject_name||"")} → ${esc(s.topic_title||"")} · ${esc(fmtTime(s.submitted_at))} · ${s.published&&s.teacher_marks!=null?esc(s.teacher_marks):"hidden"}</p>
+      <p class="spec">${esc(s.subject_name||"")}, ${esc(s.topic_title||"")}. Submitted ${esc(fmtTime(s.submitted_at))}.</p>${s.published&&s.teacher_marks!=null?`<p><span class="mark">${esc(s.teacher_marks)}</span></p>`:""}
       <div>${s.published?'<span class="tag pub">published</span>':'<span class="tag unpub">unpublished</span>'}
       ${s.late?'<span class="tag late">late submission</span>':""}
       ${s.file_url?'<button class="linklike" data-dl>Download</button>':""}</div>

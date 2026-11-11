@@ -2,24 +2,33 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Greadter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Kalam:wght@400;700&display=swap">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <header class="topbar">
   <div class="brand">Greadter</div>
+  <nav><a href="admin-login.html">Admin</a></nav>
 </header>
 <main class="container">
   <section class="hero">
-    <h1>Assignment grading.</h1>
-    <p>Submit. Review. Publish.</p>
+    <p class="hero-mark" aria-hidden="true">18/20<small>clear and well argued</small></p>
+    <h1>Hand in your work. Get it marked.</h1>
+    <p>Students upload assignments for their section. Teachers review them, set the marks and publish grades when they're ready.</p>
     <div class="hero-actions">
-      <a class="btn primary" href="role.html?role=student">Student</a>
-      <a class="btn" href="role.html?role=teacher">Teacher</a>
+      <a class="btn primary" href="role.html?role=student">I'm a student</a>
+      <a class="btn" href="role.html?role=teacher">I'm a teacher</a>
     </div>
-    <p class="small muted" style="margin-top:16px"><a class="link" href="role.html?role=admin">Admin</a></p>
   </section>
+  <ol class="steps">
+    <li><h2>Hand in</h2><p>Pick your subject and topic, then upload a PDF, Word, PowerPoint or text file.</p></li>
+    <li><h2>Get marked</h2><p>Your teacher reads the work, sets a mark and writes feedback.</p></li>
+    <li><h2>See your grade</h2><p>Marks stay hidden until your teacher publishes them, then they appear on your page.</p></li>
+  </ol>
 </main>
 </body>
 </html>

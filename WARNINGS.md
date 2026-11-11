@@ -11,6 +11,10 @@ Newest items go at the top of each section. Remove an item once it no longer app
 - **Nothing has been tested against the live database or a real deploy.** The code was only checked statically (no Node.js on the dev machine). Smoke-test signup, login, upload, publish and CSV after deploying.
 - **After deploy, confirm `/backend/login.js` and `/db/schema.sql` return 404.** [vercel.json](vercel.json) blocks them with a status-only route; verify it works on Vercel.
 
+## Reliability
+- **The first request after the site sits idle can fail** with "The network connection was lost" or a slow response, then work on retry. Likely cause: Neon's free plan suspends the database after ~5 minutes idle, and waking it can take several seconds. A Vercel deployment that is still building or just failed causes the same symptom. Fix: retry, open the site once before testing, or disable auto-suspend on a paid Neon plan.
+- **Roster import doesn't show why rows fail**, only "skipped". If a whole import fails at once, suspect the outage above and re-run it.
+
 ## Accounts & access
 - **Admins must assign teachers to sections before teachers can do anything.** A teacher with no sections sees an empty dashboard and cannot create subjects.
 - **Only the first admin can sign up publicly.** After that, new admins must be created by a logged-in admin.
@@ -41,6 +45,11 @@ Newest items go at the top of each section. Remove an item once it no longer app
 - OCR, AI grading and similarity detection are not built; `ai_marks`, `similarity_*` and `ocr_confidence` are never filled.
 - `/api/topics` returns every topic to any logged-in user (the teacher page filters client-side), so topic titles from other sections are visible via the API.
 - No Content-Security-Policy header: pages use inline scripts, and a wrong CSP would break uploads.
+
+## Design
+- **The redesign was only checked with static renders** (macOS Quick Look, no JavaScript, no web fonts, desktop width). Logged-in dashboards with real data, phone widths and the live fonts haven't been viewed yet. Click through student, teacher and admin pages on desktop and phone after deploying.
+- **Fonts load from Google Fonts** (Atkinson Hyperlegible, Kalam). If they're blocked, pages fall back to system fonts and still work. Visitors' browsers contact Google to fetch them; self-host the font files in `css/` if that matters for privacy.
+- **The design rules live at the top of [css/style.css](css/style.css)** as colour variables. Red (`--red`) is reserved for the margin line, marks and destructive actions; red margin numbers are only for real step sequences. Keep both rules so the exercise-book look stays consistent.
 
 ## Dependencies
 - The student upload page loads `@vercel/blob@2.9.0/client` from esm.sh (pinned). Bump it together with `@vercel/blob` in [package.json](package.json).

@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sign up — Greadter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Sign up - Greadter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Kalam:wght@400;700&display=swap">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -12,15 +15,15 @@
   <nav><a href="index.html">Home</a></nav>
 </header>
 <main class="container">
-  <section class="hero" style="padding:32px 0 12px">
-    <h1 style="font-size:34px">Sign up</h1>
-    <p id="roleSub" style="margin-top:8px; font-size:16px;"></p>
+  <section class="hero">
+    <h1>Sign up</h1>
+    <p id="roleSub"></p>
   </section>
 
   <details class="sec" id="sec-student" open>
     <summary><span>Student</span><span class="chev">›</span></summary>
     <div class="body">
-      <p class="small muted">Fill every field in order. Sections are verified against the uploaded class roster.</p>
+      <p class="small muted">Fill in the fields from the top. Your department, admission year and section put you in the right class.</p>
 
       <!-- Step 1: Registration number -->
       <label>Registration no. <span class="small muted">(type first)</span></label>
@@ -68,9 +71,9 @@
       <label>Password</label>
       <input id="sPass" type="password" placeholder="Password (min. 8 characters)" minlength="8" autocomplete="new-password">
 
-      <div id="verifyMsg" class="small muted" style="margin-top:8px"></div>
+      <div id="verifyMsg" class="small muted"></div>
       <div class="toolbar"><button class="btn primary" id="signupStudent" disabled>Create account</button></div>
-      <p class="small muted">Already have an account? <a class="link" href="login.html?role=student">Log in →</a></p>
+      <p class="small muted">Already have an account? <a class="link" href="login.html?role=student">Log in</a></p>
     </div>
   </details>
 
@@ -83,7 +86,7 @@
       <input id="tEmail" type="email" placeholder="University email" autocomplete="off">
       <input id="tPass" type="password" placeholder="Password (min. 8 characters)" minlength="8" autocomplete="new-password">
       <div class="toolbar"><button class="btn primary" id="signupTeacher">Create account</button></div>
-      <p class="small muted">Already have an account? <a class="link" href="login.html?role=teacher">Log in →</a></p>
+      <p class="small muted">Already have an account? <a class="link" href="login.html?role=teacher">Log in</a></p>
     </div>
   </details>
 
@@ -99,7 +102,7 @@
     </div>
   </details>
 
-  <p class="note"><a class="link" href="index.html">← Back to home</a></p>
+  <p class="note"><a class="link" href="index.html">Back to home</a></p>
 </main>
 <script src="js/auth.js"></script>
 <script>
@@ -217,7 +220,7 @@ signupBtn.addEventListener('click', async (e)=>{
   const pass = sPass.value.trim();
 
   verifyMsg.textContent = "Creating account...";
-  verifyMsg.style.color = '#6e6e73';
+  verifyMsg.style.color = 'var(--pencil)';
 
 
   const r = await signupStudent({
@@ -225,12 +228,12 @@ signupBtn.addEventListener('click', async (e)=>{
   });
   if(r.ok){
     verifyMsg.textContent = r.msg;
-    verifyMsg.style.color = '#1d8127';
+    verifyMsg.style.color = 'var(--green)';
     signupBtn.disabled = true;
     setTimeout(()=>location.href="login.html?role=student", 1200);
   } else {
     verifyMsg.textContent = r.msg;
-    verifyMsg.style.color = '#b00020';
+    verifyMsg.style.color = 'var(--red)';
   }
 });
 

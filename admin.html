@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin — Greadter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Admin - Greadter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Kalam:wght@400;700&display=swap">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -15,16 +18,16 @@
 
   <!-- Not logged in: login button only -->
   <div id="adminLoginView" hidden>
-    <section class="hero" style="padding:32px 0 12px">
-      <h1 style="font-size:34px">Admin Login</h1>
+    <section class="hero">
+      <h1>Admin</h1>
+      <p>Log in to manage departments, sections, teachers and the student roster.</p>
     </section>
-    <div class="hero-actions" style="justify-content:center; margin-top:32px;">
-      <div style="max-width:360px; margin:0 auto">
-        <div class="toolbar" style="justify-content:center">
-          <button class="btn primary" id="goAdminLogin">Admin Login</button>
+    <div class="form-col"><div>
+        <div class="toolbar">
+          <button class="btn primary" id="goAdminLogin">Log in</button>
         </div>
-        <p class="small muted" style="margin-top:12px; text-align:center">
-          <a class="link" href="index.html">← Back to home</a>
+        <p class="small muted">
+          <a class="link" href="index.html">Back to home</a>
         </p>
       </div>
     </div>
@@ -32,80 +35,79 @@
 
   <!-- Logged in: full admin dashboard -->
   <div id="adminDashboardView" hidden>
-    <section class="hero" style="padding:32px 0 12px">
-      <h1 style="font-size:34px">Admin panel</h1>
-      <p class="small muted" style="margin-top:4px">Manage sections, teachers, subjects, and roster.</p>
+    <section class="hero">
+      <h1>Admin</h1>
+      <p>Set up departments and sections, approve teachers, and import the student roster.</p>
     </section>
 
-    <div class="hero-actions" style="justify-content:center; margin-top:24px;">
-      <div style="max-width:640px; margin:0 auto; background:#fff; border:1px solid #eee; border-radius:12px; padding:24px; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+    <div class="admin-sheet"><div>
 
-        <div style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid #f5f5f5;">
-          <h3 style="margin:0 0 12px 0; font-size:18px;">Departments</h3>
-          <div class="formgrid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+        <div class="admin-block">
+          <h3>Departments</h3>
+          <div class="formgrid">
             <div><input id="depName" placeholder="Department name (e.g. Computer Science)"></div>
             <div><input id="depCode" placeholder="Code (e.g. CSE)"></div>
           </div>
-          <div class="toolbar" style="justify-content:flex-start;"><button class="btn primary" id="addDepBtn">Add department</button></div>
-          <div id="departmentList" class="rows" style="margin-top:12px;"></div>
+          <div class="toolbar"><button class="btn primary" id="addDepBtn">Add department</button></div>
+          <div id="departmentList" class="rows"></div>
         </div>
 
-        <div style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid #f5f5f5;">
-          <h3 style="margin:0 0 12px 0; font-size:18px;">Sections</h3>
-          <p class="small muted" style="margin:0 0 12px 0;">Each section belongs to an admission batch. Its semester updates automatically (odd semesters Aug–Jan, even Feb–Jul).</p>
-          <div class="formgrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:8px; margin-bottom:12px; align-items:end;">
+        <div class="admin-block">
+          <h3>Sections</h3>
+          <p class="small muted">Each section belongs to an admission year. Its semester moves on by itself: odd semesters run August to January, even ones February to July.</p>
+          <div class="formgrid">
             <div><select id="secDep"></select></div>
             <div><select id="secBatch"></select></div>
             <div><input id="secName" placeholder="Section (e.g. A)"></div>
             <div><button class="btn primary" id="addSecBtn">Add section</button></div>
           </div>
-          <div class="toolbar" style="justify-content:flex-start;">
-            <button class="btn small" id="bulkSecBtn">Add sections A + B for all 4 current batches</button>
+          <div class="toolbar">
+            <button class="btn small" id="bulkSecBtn">Add sections A and B for the 4 current batches</button>
           </div>
-          <div id="sectionList" class="rows" style="margin-top:12px;"></div>
+          <div id="sectionList" class="rows"></div>
         </div>
 
-        <div style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid #f5f5f5;">
-          <h3 style="margin:0 0 12px 0; font-size:18px;">Pending teachers</h3>
-          <p class="small muted" style="margin:0 0 12px 0;">Teachers awaiting approval.</p>
+        <div class="admin-block">
+          <h3>Pending teachers</h3>
+          <p class="small muted">New teachers can't log in until you approve them.</p>
           <div id="pendingTeachers" class="rows"></div>
         </div>
 
-        <div style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid #f5f5f5;">
-          <h3 style="margin:0 0 12px 0; font-size:18px;">Teachers &amp; sections</h3>
+        <div class="admin-block">
+          <h3>Teachers and their sections</h3>
           <div id="teacherList"></div>
         </div>
 
-        <div style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid #f5f5f5;">
-          <h3 style="margin:0 0 12px 0; font-size:18px;">Subjects</h3>
-          <div class="formgrid" style="display:grid; grid-template-columns:1fr auto auto auto; gap:8px; margin-bottom:12px; align-items:end;">
+        <div class="admin-block">
+          <h3>Subjects</h3>
+          <div class="formgrid">
             <div><select id="subjSec"></select></div>
-            <div><input id="subjName" placeholder="New subject"></div>
-            <div><input id="subjCode" placeholder="Code"></div>
+            <div><input id="subjName" placeholder="Subject name"></div>
+            <div><input id="subjCode" placeholder="Code (optional)"></div>
             <div><button class="btn primary" id="addSubjBtn">Add subject</button></div>
           </div>
           <div id="subjectList"></div>
         </div>
 
-        <div style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid #f5f5f5;">
-          <h3 style="margin:0 0 12px 0; font-size:18px;">Student roster</h3>
-          <p class="small muted" style="margin:0 0 12px 0;">Upload CSV: reg_no, name, roll_no, dept, email, section, year — section is a letter (A/B) or section id; year is the admission year (2025 or 25)</p>
-          <input type="file" id="rosterFile" accept=".csv" style="margin-bottom:12px; display:block; width:100%;">
-          <div class="toolbar" style="justify-content:flex-start;"><button class="btn primary" id="importRoster">Import roster</button></div>
-          <div id="rosterList" class="rows" style="margin-top:12px;"></div>
+        <div class="admin-block">
+          <h3>Student roster</h3>
+          <p class="small muted">Upload a CSV with the columns <b>reg_no, name, roll_no, dept, email, section, year</b>. Section is a letter such as A; year is the admission year, such as 2025. Imported students set their password through student sign up.</p>
+          <input type="file" id="rosterFile" accept=".csv">
+          <div class="toolbar"><button class="btn primary" id="importRoster">Import roster</button></div>
+          <div id="rosterList" class="rows"></div>
         </div>
 
-        <div style="margin-bottom:0;">
-          <h3 style="margin:0 0 12px 0; font-size:18px;">Accounts</h3>
+        <div class="admin-block">
+          <h3>Teacher accounts</h3>
           <div id="accountList"></div>
         </div>
 
       </div>
     </div>
 
-    <p class="note" style="text-align:center; margin-top:24px;">
+    <p class="admin-footer">
       <button class="btn danger" id="adminLogoutBtn">Log out</button>
-      <a class="link" href="index.html" style="margin-left:12px;">← Back to home</a>
+      <a class="link" href="index.html">Back to home</a>
     </p>
   </div>
 
