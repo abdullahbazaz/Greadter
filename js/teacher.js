@@ -29,7 +29,9 @@ async function loadData(){
   renderAll();
 }
 
-function renderAll(){ renderSubjects(); renderTopics(); renderSubs(); renderSim(); renderPublish(); renderThresholds(); }
+function renderAll(){ renderSubjects(); renderTopics(); renderSubs(); renderSim(); renderPublish(); renderThresholds(); renderTodo(); }
+// Everything on the page follows the one subject picker at the top.
+const inScope = s => !$("fSub").value || s.subject_id === $("fSub").value;
 
 function fillSelect(sel, items, {placeholder, label=x=>x.name}={}){
   const cur = sel.value;
@@ -62,9 +64,10 @@ function renderSubjects(){
   if(!mySections.length) box.innerHTML = `<div class="alert bad">No sections are assigned to you yet. Ask an admin to assign your sections.</div>`;
   else if(!allSubjects.length) box.innerHTML = `<div class="muted small">No subjects yet.</div>`;
   fillSelect($("subSec"), mySections, {placeholder: mySections.length ? "Pick section" : "No sections assigned", label: sectionLabel});
-  fillSelect($("topicSub"), allSubjects);
   fillSelect($("fSub"), allSubjects, {placeholder:"All subjects"});
-  fillSelect($("pubSub"), allSubjects);
+  fillSelect($("topicSub"), allSubjects, {placeholder: allSubjects.length ? "Pick a subject" : "Add a subject first"});
+  if(!$("topicSub").value && $("fSub").value) $("topicSub").value = $("fSub").value;
+  $("cntSubj").textContent = allSubjects.length ? String(allSubjects.length) : "";
 }
 
 $("addSubBtn").onclick = async ()=>{
@@ -83,44 +86,49 @@ $("delConfirm").onclick = async ()=>{
 };
 
 // ---- topics ----
+function topicItem(t){
+  const d = document.createElement("div");
+  d.className = "topic";
+  d.innerHTML = `<h4>${esc(t.title)}</h4>
+    <p class="spec">${esc(t.total_marks ?? "—")} marks${t.deadline?`, due ${esc(fmtDate(t.deadline))}`:", no deadline"}</p>
+    ${t.overview?`<p class="small">${esc(t.overview)}</p>`:""}
+    ${t.requirements?`<p class="small muted">Requirements: ${esc(t.requirements)}</p>`:`<p class="small muted">No requirements written yet. The AI marks against them, so add some.</p>`}
+    <div class="toolbar"><button class="linklike" data-a="e">Edit</button><button class="linklike" data-a="d">Delete</button></div>`;
+  d.querySelector('[data-a="d"]').onclick = async ()=>{
+    if(!confirm(`Delete topic "${t.title}"?`)) return;
+    await api("/topics", { method:"POST", body: JSON.stringify({ id: t.id, action:"delete" }) });
+    await loadData();
+  };
+  d.querySelector('[data-a="e"]').onclick = async ()=>{
+    const upd = { id: t.id };
+    const nt = prompt("Title:", t.title); if(nt === null) return; if(nt.trim()) upd.title = nt.trim();
+    const nm = prompt("Total marks:", t.total_marks ?? ""); if(nm !== null && nm.trim() !== "") upd.total_marks = +nm;
+    const nd = prompt("Deadline YYYY-MM-DD:", fmtDate(t.deadline)); if(nd !== null) upd.deadline = nd.trim() || null;
+    const r = await api("/topics", { method:"POST", body: JSON.stringify(upd) });
+    if(r && !r.ok) alert(r.error);
+    await loadData();
+  };
+  return d;
+}
+
 function renderTopics(){
   const box = $("topicList"); box.innerHTML = "";
-  const sid = $("topicSub").value;
-  const sub = allSubjects.find(s=>s.id===sid);
-  const list = allTopics.filter(t=>t.subject_id===sid);
-  if(!sub){ box.innerHTML = `<div class="muted small">Create a subject first.</div>`; }
-  else if(!list.length){ box.innerHTML = `<div class="muted small">No topics for ${esc(sub.name)} yet.</div>`; }
-  list.forEach(t=>{
-    const d = document.createElement("div");
-    d.className = "topic";
-    d.innerHTML = `<h4>${esc(t.title)}</h4>
-      <p class="spec">${esc(t.total_marks ?? "—")} marks${t.deadline?`, due ${esc(fmtDate(t.deadline))}`:""}</p>
-      <p class="small muted">${esc(t.overview||"")}</p><p class="small muted">${esc(t.requirements||"")}</p>
-      <div class="toolbar"><button class="linklike" data-a="e">Edit</button><button class="linklike" data-a="d">Delete</button></div>`;
-    d.querySelector('[data-a="d"]').onclick = async ()=>{
-      if(!confirm(`Delete topic "${t.title}"?`)) return;
-      await api("/topics", { method:"POST", body: JSON.stringify({ id: t.id, action:"delete" }) });
-      await loadData();
-    };
-    d.querySelector('[data-a="e"]').onclick = async ()=>{
-      const upd = { id: t.id };
-      const nt = prompt("Title:", t.title); if(nt === null) return; if(nt.trim()) upd.title = nt.trim();
-      const nm = prompt("Total marks:", t.total_marks ?? ""); if(nm !== null && nm.trim() !== "") upd.total_marks = +nm;
-      const nd = prompt("Deadline YYYY-MM-DD:", fmtDate(t.deadline)); if(nd !== null) upd.deadline = nd.trim() || null;
-      const r = await api("/topics", { method:"POST", body: JSON.stringify(upd) });
-      if(r && !r.ok) alert(r.error);
-      await loadData();
-    };
-    box.appendChild(d);
+  const subs = allSubjects.filter(inScope);
+  const shown = allTopics.filter(inScope);
+  if(!allSubjects.length) box.innerHTML = `<p class="muted small">Add a subject first, then its topics.</p>`;
+  else if(!shown.length) box.innerHTML = `<p class="muted small">No topics yet${$("fSub").value ? " for this subject" : ""}. Add one below.</p>`;
+  subs.forEach(sub=>{
+    const list = shown.filter(t=>t.subject_id===sub.id);
+    if(!list.length) return;
+    const h = document.createElement("h4"); h.className = "topic-group"; h.textContent = sub.name; box.appendChild(h);
+    list.forEach(t=>box.appendChild(topicItem(t)));
   });
-  // Submission filter: topics of the filtered subject (or all).
-  const fs = $("fSub").value;
-  fillSelect($("fTopic"), allTopics.filter(t=>!fs || t.subject_id===fs), {placeholder:"All topics", label:t=>t.title});
+  $("cntTopic").textContent = shown.length ? String(shown.length) : "";
+  fillSelect($("fTopic"), shown, {placeholder:"All topics", label:t=>t.title});
 }
-$("topicSub").addEventListener("change", renderTopics);
 
 $("addTopicBtn").onclick = async ()=>{
-  const sid = $("topicSub").value; if(!sid){ alert("No subject"); return; }
+  const sid = $("topicSub").value; if(!sid){ alert("Choose which subject this topic belongs to."); return; }
   const title = $("topicTitle").value.trim(); if(!title){ alert("Enter topic title"); return; }
   const r = await api("/topics", { method:"POST", body: JSON.stringify({ subject_id:sid, title, overview:$("topicOverview").value.trim(), requirements:$("topicReq").value.trim(), total_marks:+$("topicMarks").value||20, deadline:$("topicDeadline").value||null }) });
   if(r && !r.ok){ alert(r.error); return; }
@@ -129,7 +137,7 @@ $("addTopicBtn").onclick = async ()=>{
 };
 
 // ---- submissions to check ----
-$("fSub").addEventListener("change", ()=>{ renderTopics(); renderSubs(); });
+$("fSub").addEventListener("change", ()=>{ if($("fSub").value) $("topicSub").value = $("fSub").value; renderAll(); });
 $("fTopic").addEventListener("change", renderSubs);
 $("fSearch").addEventListener("input", renderSubs);
 $("fState").addEventListener("change", renderSubs);
@@ -137,10 +145,10 @@ $("fState").addEventListener("change", renderSubs);
 const reviewLink = s => `review.html?id=${encodeURIComponent(s.id)}`;
 
 function filteredSubs(){
-  const fs = $("fSub").value, ft = $("fTopic").value, fst = $("fState").value, q = $("fSearch").value.trim().toLowerCase();
+  const ft = $("fTopic").value, fst = $("fState").value, q = $("fSearch").value.trim().toLowerCase();
   return allSubmissions.filter(s=>{
     const st = reviewState(s).key, f = reviewFlags(s);
-    return (!fs || s.subject_id===fs) && (!ft || s.topic_id===ft) &&
+    return inScope(s) && (!ft || s.topic_id===ft) &&
       (!q || `${s.student_name} ${s.roll_no} ${s.reg_no}`.toLowerCase().includes(q)) &&
       (!fst || (fst==="todo" && ["ready","failed","manual"].includes(st)) || (fst==="flagged" && (f.aiFlag || f.simFlag)) || fst===st);
   // Most urgent first: failed checks, then ready-to-review (flagged ones on top), then the rest.
@@ -178,6 +186,41 @@ function renderSubs(){
   $("selCount").textContent = checked.size+" selected";
 }
 
+// ---- what needs doing: plain sentences that jump to the matching work ----
+function renderTodo(){
+  const rows = allSubmissions.filter(inScope);
+  const count = fn => rows.filter(fn).length;
+  const st = s => reviewState(s).key;
+  const ready = count(s=>st(s)==="ready"), manual = count(s=>["manual","failed"].includes(st(s)));
+  const flagged = count(s=>{ const f = reviewFlags(s); return (f.aiFlag || f.simFlag) && !s.published; });
+  const toPublish = count(s=>st(s)==="verified"), checking = count(s=>st(s)==="checking");
+  const plural = (n, one, many) => `${n} ${n===1?one:many}`;
+  const items = [
+    ready && { text:`${plural(ready, "submission is", "submissions are")} ready for you to review.`, go:()=>jump("check", "todo") },
+    manual && { text:`${plural(manual, "submission needs", "submissions need")} marking by hand: the AI couldn't check ${manual===1?"it":"them"}.`, go:()=>jump("check", "todo") },
+    flagged && { text:`${plural(flagged, "submission is", "submissions are")} flagged for possible copying or AI-written text.`, go:()=>jump("check", "flagged") },
+    toPublish && { text:`${plural(toPublish, "mark is", "marks are")} verified and waiting to be published.`, go:()=>jump("publish") },
+    checking && { text:`${plural(checking, "submission is", "submissions are")} still being checked by the AI. Nothing to do yet.`, quiet:true },
+  ].filter(Boolean);
+  const box = $("todoList"); box.innerHTML = "";
+  if(!items.length){
+    box.innerHTML = `<li class="todo-done">${rows.length ? "You're up to date. Nothing to mark or publish right now." : "No submissions yet. They appear here when students upload work."}</li>`;
+  }
+  items.forEach(it=>{
+    const li = document.createElement("li");
+    if(it.quiet){ li.className = "todo-quiet"; li.textContent = it.text; }
+    else { const b = document.createElement("button"); b.className = "todo-item"; b.type = "button"; b.textContent = it.text; b.onclick = it.go; li.appendChild(b); }
+    box.appendChild(li);
+  });
+  const open = count(s=>["ready","manual","failed"].includes(st(s)));
+  $("cntCheck").textContent = open ? `${open} to review` : "";
+}
+function jump(id, state){
+  const sec = $(id); sec.open = true;
+  if(state !== undefined){ $("fState").value = state; renderSubs(); }
+  sec.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start" });
+}
+
 // ---- flag thresholds (per teacher) ----
 // Moving a slider previews the result live: the counts and the tags in the list update
 // straight away. Nothing is saved until "Save thresholds".
@@ -204,7 +247,7 @@ function previewThreshold(k, v){
   if(!Number.isInteger(n) || n < 1 || n > 100) return;
   FLAGS[k] = n;
   TH.filter(t=>t[0]===k).forEach(([, range, num])=>{ $(range).value = n; $(num).value = n; });
-  updateThresholdCounts(); renderSubs(); renderSim();
+  updateThresholdCounts(); renderSubs(); renderSim(); renderTodo();
 }
 TH.forEach(([k, range, num])=>{
   $(range).addEventListener("input", e=>previewThreshold(k, e.target.value));
@@ -231,13 +274,14 @@ function renderSim(){
   const box = $("simGroups");
   const byId = Object.fromEntries(allSubmissions.map(s=>[s.id, s]));
   const pairs = new Map();
-  allSubmissions.forEach(s=>((s.ai_review && s.ai_review.similarity) || []).forEach(m=>{
+  allSubmissions.filter(inScope).forEach(s=>((s.ai_review && s.ai_review.similarity) || []).forEach(m=>{
     const o = byId[m.submission_id], pct = Math.round(+m.pct || 0);
     if(!o || pct < FLAGS.similarity) return;
     const key = [s.id, o.id].sort().join("|");
     if(!pairs.has(key) || pairs.get(key).pct < pct) pairs.set(key, { a:s, b:o, pct });
   }));
   const list = [...pairs.values()].sort((x, y)=>y.pct - x.pct);
+  $("cntCopy").textContent = list.length ? `${list.length} ${list.length===1?"pair":"pairs"}` : "";
   if(!list.length){ box.innerHTML = `<p class="muted small">No overlapping submissions found so far.</p>`; return; }
   box.innerHTML = `<div class="table-wrap"><table><tr><th>Overlap</th><th>Student</th><th>Student</th><th>Topic</th></tr>` + list.map(p=>
     `<tr><td><b>${p.pct}%</b></td>
@@ -248,8 +292,10 @@ function renderSim(){
 
 // ---- publish + csv ----
 function renderPublish(){
-  const sid = $("pubSub").value;
-  const rows = allSubmissions.filter(s=>s.subject_id===sid);
+  const rows = allSubmissions.filter(inScope);
+  const waiting = rows.filter(s=>s.verified_at && !s.published).length;
+  $("cntPub").textContent = waiting ? `${waiting} ready` : "";
+  $("pubHint").textContent = $("fSub").value ? "" : "Showing every subject. Choose a subject at the top to download its marks as a CSV.";
   let h = `<tr><th>Student</th><th>Topic</th><th>Your mark</th><th>Status</th><th></th></tr>`;
   rows.forEach(s=>{
     const st = reviewState(s), verified = !!s.verified_at;
@@ -260,7 +306,7 @@ function renderPublish(){
         ? `<button class="btn small ${s.published?"":"ok"}" data-pub="${esc(s.id)}">${s.published?"Unpublish":"Publish"}</button>`
         : `<a class="btn small" href="${reviewLink(s)}">Review first</a>`}</td></tr>`;
   });
-  if(!rows.length) h += `<tr><td colspan="5" class="muted small">No submissions for this subject.</td></tr>`;
+  if(!rows.length) h += `<tr><td colspan="5" class="muted small">No submissions yet.</td></tr>`;
   $("pubTable").innerHTML = h;
   $("pubTable").querySelectorAll("[data-pub]").forEach(b=>b.onclick=async ()=>{
     const s = allSubmissions.find(x=>x.id===b.dataset.pub);
@@ -270,11 +316,10 @@ function renderPublish(){
   });
 }
 
-$("pubSub").addEventListener("change", renderPublish);
 // Bulk publish/unpublish: one request instead of one per submission.
 async function bulkPublish(published){
-  const ids = allSubmissions.filter(s=>s.subject_id===$("pubSub").value).map(s=>s.id);
-  if(!ids.length){ alert("No submissions for this subject."); return; }
+  const ids = allSubmissions.filter(inScope).map(s=>s.id);
+  if(!ids.length){ alert("There are no submissions to publish yet."); return; }
   const r = await api("/submissions_admin", { method:"POST", body: JSON.stringify({ ids, published }) });
   await loadData();
   if(!r) return;
@@ -286,7 +331,7 @@ async function bulkPublish(published){
 $("pubAll").onclick = ()=>bulkPublish(true);
 $("unpubAll").onclick = ()=>bulkPublish(false);
 $("csvBtn").onclick = ()=>{
-  const sid = $("pubSub").value; if(!sid){ alert("Pick a subject"); return; }
+  const sid = $("fSub").value; if(!sid){ alert("Choose a subject at the top of the page first."); return; }
   downloadAuthed(`/csv?subject_id=${encodeURIComponent(sid)}`, `subject_${sid}_marks.csv`);
 };
 

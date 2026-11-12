@@ -15,59 +15,42 @@
   <nav><a href="index.html">Home</a></nav>
 </header>
 <main class="container">
-  <details class="sec" open>
-    <summary><span>Subjects</span><span class="chev">›</span></summary>
-    <div class="body">
-      <div class="formgrid">
-        <div><input id="subName" placeholder="New subject"></div>
-        <div><input id="subCode" placeholder="Code"></div>
-      </div>
-      <select id="subSec"></select>
-      <label>Assignment mode</label>
-      <select id="subMode">
-        <option value="single">One topic for all students</option>
-        <option value="multiple">Multiple topics, student chooses</option>
-        <option value="custom">Students create custom topics</option>
-      </select>
-      <div class="toolbar"><button class="btn primary" id="addSubBtn">Add subject</button></div>
-      <div id="subList" class="rows"></div>
-    </div>
-  </details>
+  <section class="hero teach-hero">
+    <h1>Marking</h1>
+    <p>Check what the AI found, decide each mark, then publish it to the student.</p>
+  </section>
 
-  <details class="sec">
-    <summary><span>Topics</span><span class="chev">›</span></summary>
-    <div class="body">
-      <select id="topicSub"></select>
-      <input id="topicTitle" placeholder="New topic">
-      <textarea id="topicOverview" rows="2" placeholder="Overview"></textarea>
-      <textarea id="topicReq" rows="2" placeholder="Requirements"></textarea>
-      <div class="formgrid">
-        <div><input id="topicMarks" type="number" min="1" step="1" value="20"></div>
-        <div><input id="topicDeadline" type="date" value="2026-11-15"></div>
-      </div>
-      <div class="toolbar"><button class="btn primary" id="addTopicBtn">Add topic</button></div>
-      <div id="topicList"></div>
-    </div>
-  </details>
+  <div class="scope">
+    <label for="fSub">Subject</label>
+    <select id="fSub"><option value="">All subjects</option></select>
+    <p class="small muted">Everything on this page follows this choice.</p>
+  </div>
 
-  <details class="sec" id="check" open>
-    <summary><span>Check submissions</span><span class="chev">›</span></summary>
-    <div class="body">
-      <p class="small muted">The AI reads each upload, suggests a mark, points out mistakes and flags possible copying or AI-written text. Open a submission to check its work, set the mark and verify it. Students see nothing until you publish.</p>
-      <div class="formgrid">
-        <div><select id="fSub" aria-label="Subject"><option value="">All subjects</option></select></div>
-        <div><select id="fTopic" aria-label="Topic"><option value="">All topics</option></select></div>
-      </div>
-      <div class="formgrid">
-        <div><input id="fSearch" placeholder="Search by name, roll or reg. no." aria-label="Search"></div>
-        <div><select id="fState" aria-label="Status">
-          <option value="">Any status</option>
-          <option value="todo">Needs your review</option>
-          <option value="flagged">Flagged for copying or AI text</option>
-          <option value="verified">Verified, not published</option>
-          <option value="published">Published</option>
-        </select></div>
-      </div>
+  <section class="todo" aria-labelledby="todoTitle">
+    <h2 id="todoTitle">What needs doing</h2>
+    <ul id="todoList" class="todo-list"></ul>
+  </section>
+
+  <div class="group">
+    <details class="sec" id="check" open>
+      <summary>
+        <span class="sum-text"><span class="sum-title">Check submissions</span>
+          <span class="sum-desc">Open each one to see the AI's suggested mark and the mistakes it found, then set and verify your mark.</span></span>
+        <span class="sum-side"><span class="count" id="cntCheck"></span><span class="chev">›</span></span>
+      </summary>
+      <div class="body">
+        <div class="formgrid">
+          <div><label for="fTopic">Topic</label><select id="fTopic"><option value="">All topics</option></select></div>
+          <div><label for="fState">Status</label><select id="fState">
+            <option value="">Any status</option>
+            <option value="todo">Needs your review</option>
+            <option value="flagged">Flagged for copying or AI text</option>
+            <option value="verified">Verified, not published</option>
+            <option value="published">Published</option>
+          </select></div>
+        </div>
+        <label for="fSearch">Find a student</label>
+        <input id="fSearch" placeholder="Name, roll or registration number">
       <details class="flag-settings" id="flagSettings">
         <summary>When to flag work</summary>
         <p class="small muted">Flags only decide which submissions get a tag and move up your list. Every score still shows on the review page, and students never see flags.</p>
@@ -87,36 +70,97 @@
         </div>
         <div id="thMsg" role="status" aria-live="polite"></div>
       </details>
-      <div class="toolbar">
-        <button class="linklike" id="selAll">Select all shown</button>
-        <button class="linklike" id="selNone">Clear selection</button>
-        <button class="btn small" id="bulkDl">Download selected files</button>
-        <span class="muted small" id="selCount"></span>
+        <div class="table-wrap"><table id="subTable"></table></div>
+        <div class="toolbar">
+          <button class="linklike" id="selAll">Select all shown</button>
+          <button class="linklike" id="selNone">Clear selection</button>
+          <button class="btn small" id="bulkDl">Download selected files</button>
+          <span class="muted small" id="selCount"></span>
+        </div>
       </div>
-      <div class="table-wrap"><table id="subTable"></table></div>
-    </div>
-  </details>
+    </details>
 
-  <details class="sec">
-    <summary><span>Possible copying</span><span class="chev">›</span></summary>
-    <div class="body">
-      <p class="small muted">Pairs of submissions on the same topic whose text overlaps. Open both before deciding anything.</p>
-      <div id="simGroups"></div>
-    </div>
-  </details>
+    <details class="sec" id="copying">
+      <summary>
+        <span class="sum-text"><span class="sum-title">Possible copying</span>
+          <span class="sum-desc">Pairs of students whose answers to the same topic overlap. Open both before deciding anything.</span></span>
+        <span class="sum-side"><span class="count" id="cntCopy"></span><span class="chev">›</span></span>
+      </summary>
+      <div class="body"><div id="simGroups"></div></div>
+    </details>
 
-  <details class="sec">
-    <summary><span>Publish marks</span><span class="chev">›</span></summary>
-    <div class="body">
-      <select id="pubSub"></select>
-      <div class="toolbar">
-        <button class="btn primary small" id="pubAll">Publish all verified</button>
-        <button class="btn small" id="unpubAll">Unpublish all</button>
-        <button class="btn small" id="csvBtn">Download CSV</button>
+    <details class="sec" id="publish">
+      <summary>
+        <span class="sum-text"><span class="sum-title">Publish marks</span>
+          <span class="sum-desc">Students see a mark only after you publish it. Only verified marks can be published.</span></span>
+        <span class="sum-side"><span class="count" id="cntPub"></span><span class="chev">›</span></span>
+      </summary>
+      <div class="body">
+        <div class="toolbar">
+          <button class="btn primary small" id="pubAll">Publish all verified</button>
+          <button class="btn small" id="unpubAll">Unpublish all</button>
+          <button class="btn small" id="csvBtn">Download marks as CSV</button>
+        </div>
+        <p class="small muted" id="pubHint"></p>
+        <div class="table-wrap"><table id="pubTable"></table></div>
       </div>
-      <div class="table-wrap"><table id="pubTable"></table></div>
-    </div>
-  </details>
+    </details>
+  </div>
+
+  <div class="group">
+    <h2 class="group-title">Your classes</h2>
+    <p class="group-desc">Set up what students hand in. You usually do this once at the start of term.</p>
+
+    <details class="sec" id="subjects">
+      <summary>
+        <span class="sum-text"><span class="sum-title">Subjects</span>
+          <span class="sum-desc">The courses you teach, each tied to one of your sections.</span></span>
+        <span class="sum-side"><span class="count" id="cntSubj"></span><span class="chev">›</span></span>
+      </summary>
+      <div class="body">
+        <div id="subList" class="rows"></div>
+        <h3 class="form-title">Add a subject</h3>
+        <div class="formgrid">
+          <div><label for="subName">Name</label><input id="subName" placeholder="e.g. Data Structures"></div>
+          <div><label for="subCode">Code <span class="muted">(optional)</span></label><input id="subCode" placeholder="e.g. CS201"></div>
+        </div>
+        <label for="subSec">Section</label>
+        <select id="subSec"></select>
+        <label for="subMode">How students pick a topic</label>
+        <select id="subMode">
+          <option value="single">Everyone answers the same topic</option>
+          <option value="multiple">Students choose from your topics</option>
+          <option value="custom">Students can propose their own topic</option>
+        </select>
+        <div class="toolbar"><button class="btn primary" id="addSubBtn">Add subject</button></div>
+      </div>
+    </details>
+
+    <details class="sec" id="topics">
+      <summary>
+        <span class="sum-text"><span class="sum-title">Topics</span>
+          <span class="sum-desc">The assignments inside each subject: what to write about, the total marks and the deadline.</span></span>
+        <span class="sum-side"><span class="count" id="cntTopic"></span><span class="chev">›</span></span>
+      </summary>
+      <div class="body">
+        <div id="topicList"></div>
+        <h3 class="form-title">Add a topic</h3>
+        <label for="topicSub">Subject</label>
+        <select id="topicSub"></select>
+        <label for="topicTitle">Title</label>
+        <input id="topicTitle" placeholder="e.g. Linked lists">
+        <label for="topicOverview">Overview <span class="muted">(what the assignment is about)</span></label>
+        <textarea id="topicOverview" rows="2"></textarea>
+        <label for="topicReq">Requirements <span class="muted">(the AI marks against these)</span></label>
+        <textarea id="topicReq" rows="3" placeholder="e.g. Explain insertion, deletion and traversal, with one diagram."></textarea>
+        <div class="formgrid">
+          <div><label for="topicMarks">Total marks</label><input id="topicMarks" type="number" min="1" step="1" value="20"></div>
+          <div><label for="topicDeadline">Deadline</label><input id="topicDeadline" type="date"></div>
+        </div>
+        <div class="toolbar"><button class="btn primary" id="addTopicBtn">Add topic</button></div>
+      </div>
+    </details>
+  </div>
 
   <p class="note"><button class="linklike" id="logoutBtn">Log out</button></p>
 </main>
