@@ -7,11 +7,11 @@ let allTopics = [];
 let allSubmissions = [];
 let mySections = [];
 
-const ocrTag = s => s.ocr_confidence != null && s.ocr_confidence < 80 ? `<span class="tag ocr">OCR ${esc(s.ocr_confidence)}%</span>` : "";
 
 async function init(){
   if(!session) return;
   const me = await api("/me");
+  if(me && me.ok) setFlagThresholds(me.user.flag_settings);
   if(!me || !me.ok){ clearSession(); location.replace(LOGIN_PAGE.teacher); return; }
   await loadData();
 }
@@ -29,7 +29,7 @@ async function loadData(){
   renderAll();
 }
 
-function renderAll(){ renderSubjects(); renderTopics(); renderSubs(); renderSim(); renderReview(); renderPublish(); }
+function renderAll(){ renderSubjects(); renderTopics(); renderSubs(); renderSim(); renderPublish(); renderThresholds(); }
 
 function fillSelect(sel, items, {placeholder, label=x=>x.name}={}){
   const cur = sel.value;
@@ -128,111 +128,144 @@ $("addTopicBtn").onclick = async ()=>{
   await loadData();
 };
 
-// ---- submissions ----
+// ---- submissions to check ----
 $("fSub").addEventListener("change", ()=>{ renderTopics(); renderSubs(); });
 $("fTopic").addEventListener("change", renderSubs);
 $("fSearch").addEventListener("input", renderSubs);
+$("fState").addEventListener("change", renderSubs);
+
+const reviewLink = s => `review.html?id=${encodeURIComponent(s.id)}`;
 
 function filteredSubs(){
-  const fs = $("fSub").value, ft = $("fTopic").value, q = $("fSearch").value.trim().toLowerCase();
-  return allSubmissions.filter(s=>
-    (!fs || s.subject_id===fs) && (!ft || s.topic_id===ft) &&
-    (!q || `${s.student_name} ${s.roll_no} ${s.reg_no}`.toLowerCase().includes(q)));
+  const fs = $("fSub").value, ft = $("fTopic").value, fst = $("fState").value, q = $("fSearch").value.trim().toLowerCase();
+  return allSubmissions.filter(s=>{
+    const st = reviewState(s).key, f = reviewFlags(s);
+    return (!fs || s.subject_id===fs) && (!ft || s.topic_id===ft) &&
+      (!q || `${s.student_name} ${s.roll_no} ${s.reg_no}`.toLowerCase().includes(q)) &&
+      (!fst || (fst==="todo" && ["ready","failed","manual"].includes(st)) || (fst==="flagged" && (f.aiFlag || f.simFlag)) || fst===st);
+  // Most urgent first: failed checks, then ready-to-review (flagged ones on top), then the rest.
+  }).sort((x, y)=>{
+    const rx = reviewState(x).rank, ry = reviewState(y).rank;
+    if(rx !== ry) return rx - ry;
+    const fx = reviewFlags(x), fy = reviewFlags(y);
+    return (+(fy.aiFlag || fy.simFlag)) - (+(fx.aiFlag || fx.simFlag)) || String(y.submitted_at).localeCompare(String(x.submitted_at));
+  });
+}
+
+function aiCell(s){
+  const r = s.ai_review;
+  if(r && r.status === "done" && r.suggested_marks != null) return `<span class="mark">${esc(r.suggested_marks)}</span>${s.total_marks!=null?`<span class="small muted"> / ${esc(s.total_marks)}</span>`:""}`;
+  return `<span class="muted">—</span>`;
 }
 
 function renderSubs(){
-  let h = `<tr><th></th><th>Student (roll / reg)</th><th>Subject and topic</th><th>File</th><th>Flags</th><th>Marks</th><th>Actions</th></tr>`;
+  let h = `<tr><th></th><th>Student</th><th>Topic</th><th>AI's mark</th><th>Flags</th><th>Your mark</th><th>Status</th><th></th></tr>`;
   const rows = filteredSubs();
   rows.forEach(s=>{
-    h += `<tr><td><input type="checkbox" data-id="${esc(s.id)}" ${checked.has(s.id)?"checked":""}></td>
-      <td><b>${esc(s.student_name)}</b><br><span class="small muted">Roll ${esc(s.roll_no)}, reg. ${esc(s.reg_no)}</span></td>
-      <td>${esc(s.subject_name||"")}<br>${esc(s.topic_title||"")}<br><span class="small muted">${esc(fmtTime(s.submitted_at))}</span></td>
-      <td>${esc(s.file_name)}<br><span class="small muted">${esc(s.file_type||"")}, ${esc(s.size_kb||0)} KB</span></td>
-      <td>${s.late?'<span class="tag late">late</span>':""} ${ocrTag(s)} ${s.similarity_group?`<span class="tag sim">${esc(s.similarity_group)} ${esc(s.similarity_pct)}%</span>`:""} ${s.published?'<span class="tag pub">published</span>':'<span class="tag unpub">unpublished</span>'}</td>
-      <td>AI ${esc(s.ai_marks??"—")} / T ${esc(s.teacher_marks??"—")}</td>
-      <td><button class="btn small" data-view="${esc(s.id)}">View</button> <button class="btn small" data-dl="${esc(s.id)}">Download</button></td></tr>`;
+    const st = reviewState(s);
+    h += `<tr><td><input type="checkbox" data-id="${esc(s.id)}" ${checked.has(s.id)?"checked":""} aria-label="Select ${esc(s.student_name)}"></td>
+      <td><b>${esc(s.student_name)}</b><br><span class="small muted">Roll ${esc(s.roll_no)}</span></td>
+      <td>${esc(s.topic_title||"")}<br><span class="small muted">${esc(s.subject_name||"")}, ${esc(fmtTime(s.submitted_at))}</span></td>
+      <td>${aiCell(s)}</td>
+      <td>${flagTags(s) || '<span class="muted small">None</span>'}</td>
+      <td>${s.teacher_marks!=null?`<b>${esc(s.teacher_marks)}</b>`:'<span class="muted">—</span>'}</td>
+      <td><span class="state-chip state-${st.key}">${esc(st.label)}</span></td>
+      <td><a class="btn small ${st.key==="ready"?"primary":""}" href="${reviewLink(s)}">${st.key==="ready"||st.key==="manual"||st.key==="failed"?"Review":"Open"}</a></td></tr>`;
   });
-  if(!rows.length) h += `<tr><td colspan="7" class="muted small">No submissions.</td></tr>`;
+  if(!rows.length) h += `<tr><td colspan="8" class="muted small">${allSubmissions.length ? "No submissions match these filters." : "No submissions yet. They appear here when students upload work."}</td></tr>`;
   const tbl = $("subTable"); tbl.innerHTML = h;
   tbl.querySelectorAll('input[type="checkbox"]').forEach(c=>c.onchange=()=>{ c.checked?checked.add(c.dataset.id):checked.delete(c.dataset.id); $("selCount").textContent = checked.size+" selected"; });
-  tbl.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{
-    const s = allSubmissions.find(x=>x.id===b.dataset.view); if(!s) return;
-    const ocr = s.ocr_confidence ?? null;
-    // textContent: no HTML escaping needed here.
-    $("previewBox").textContent = `FILE: ${s.file_name} (${s.file_type}, ${s.size_kb}KB)\nSTUDENT: ${s.student_name} | Roll ${s.roll_no} | ${s.reg_no} | ${s.dept||""}\nTOPIC: ${s.topic_title||""} | Total ${s.total_marks??""}\nOCR confidence: ${ocr==null?"n/a":ocr+"%"}${ocr!=null&&ocr<80?" — check manually":""}\nFEEDBACK:\n` + (s.feedback||[]).map(f=>` - [${f.type}] ${f.text}${f.why?" (Why: "+f.why+")":""}`).join("\n");
-  });
-  tbl.querySelectorAll("[data-dl]").forEach(b=>b.onclick=()=>downloadSubmission(allSubmissions.find(x=>x.id===b.dataset.dl)));
   $("selCount").textContent = checked.size+" selected";
 }
+
+// ---- flag thresholds (per teacher) ----
+// Moving a slider previews the result live: the counts and the tags in the list update
+// straight away. Nothing is saved until "Save thresholds".
+const TH = [["ai_text", "thAi", "thAiN", "thAiCount", "AI-like"], ["similarity", "thSim", "thSimN", "thSimCount", "similar"]];
+function renderThresholds(){
+  TH.forEach(([k, range, num]) => { $(range).value = FLAGS[k]; $(num).value = FLAGS[k]; });
+  updateThresholdCounts();
+}
+function updateThresholdCounts(){
+  const scored = { ai_text: 0, similarity: 0 }, flagged = { ai_text: 0, similarity: 0 };
+  allSubmissions.forEach(s=>{
+    const f = reviewFlags(s);
+    if(f.ai != null){ scored.ai_text++; if(f.aiFlag) flagged.ai_text++; }
+    if(f.sim != null){ scored.similarity++; if(f.simFlag) flagged.similarity++; }
+  });
+  TH.forEach(([k, , , count, word])=>{
+    $(count).textContent = scored[k]
+      ? `${flagged[k]} of ${scored[k]} checked ${scored[k]===1?"submission is":"submissions are"} flagged as ${word} at this level.`
+      : "No AI-checked submissions yet, so there's nothing to preview.";
+  });
+}
+function previewThreshold(k, v){
+  const n = Math.round(Number(v));
+  if(!Number.isInteger(n) || n < 1 || n > 100) return;
+  FLAGS[k] = n;
+  TH.filter(t=>t[0]===k).forEach(([, range, num])=>{ $(range).value = n; $(num).value = n; });
+  updateThresholdCounts(); renderSubs(); renderSim();
+}
+TH.forEach(([k, range, num])=>{
+  $(range).addEventListener("input", e=>previewThreshold(k, e.target.value));
+  $(num).addEventListener("change", e=>previewThreshold(k, e.target.value));
+});
+$("thReset").onclick = ()=>{ previewThreshold("ai_text", FLAG_DEFAULTS.ai_text); previewThreshold("similarity", FLAG_DEFAULTS.similarity); $("thMsg").innerHTML = `<div class="alert">Back to the defaults. Save to keep them.</div>`; };
+$("thSave").onclick = async ()=>{
+  const r = await api("/settings", { method:"POST", body: JSON.stringify({ ai_text: FLAGS.ai_text, similarity: FLAGS.similarity }) });
+  if(!r) return;
+  $("thMsg").innerHTML = r.ok
+    ? `<div class="alert ok">Saved. Work is flagged at ${FLAGS.ai_text}% AI-like and ${FLAGS.similarity}% similar, on any device you use.</div>`
+    : `<div class="alert bad">${esc(r.error || "Couldn't save. Try again.")}</div>`;
+};
 
 $("selAll").onclick = ()=>{ filteredSubs().forEach(s=>checked.add(s.id)); renderSubs(); };
 $("selNone").onclick = ()=>{ checked.clear(); renderSubs(); };
 $("bulkDl").onclick = async ()=>{
-  if(!checked.size){ alert("Select at least one row"); return; }
+  if(!checked.size){ alert("Select at least one submission"); return; }
   for(const s of allSubmissions.filter(s=>checked.has(s.id))) await downloadSubmission(s);
 };
 
-// ---- similarity ----
+// ---- possible copying: one row per matched pair ----
 function renderSim(){
-  const box = $("simGroups"); box.innerHTML = "";
-  const groups = {};
-  allSubmissions.filter(s=>s.similarity_group).forEach(s=>{ (groups[s.similarity_group]=groups[s.similarity_group]||[]).push(s); });
-  if(!Object.keys(groups).length){ box.innerHTML = `<div class="muted small">None.</div>`; return; }
-  Object.entries(groups).forEach(([g, list])=>{
-    const d = document.createElement("div");
-    d.className = "topic";
-    d.innerHTML = `<h4>${esc(g)} — ${list.length} grouped</h4>
-      <table><tr><th>Student</th><th>File</th><th>Matches</th><th>Similarity</th></tr>${list.map(s=>{
-      const names = (Array.isArray(s.similarity_with)?s.similarity_with:[]).map(id=>{ const o=allSubmissions.find(x=>x.id===id); return o?`${esc(o.student_name)} (roll ${esc(o.roll_no)})`:esc(id); }).join(", ")||"—";
-      return `<tr><td><b>${esc(s.student_name)}</b> roll ${esc(s.roll_no)}</td><td>${esc(s.file_name)}</td><td>${names}</td><td><b>${esc(s.similarity_pct)}%</b></td></tr>`;
-    }).join("")}</table>
-      <p class="small muted">Check these files side by side, then set marks in Review and mark.</p>`;
-    box.appendChild(d);
-  });
+  const box = $("simGroups");
+  const byId = Object.fromEntries(allSubmissions.map(s=>[s.id, s]));
+  const pairs = new Map();
+  allSubmissions.forEach(s=>((s.ai_review && s.ai_review.similarity) || []).forEach(m=>{
+    const o = byId[m.submission_id], pct = Math.round(+m.pct || 0);
+    if(!o || pct < FLAGS.similarity) return;
+    const key = [s.id, o.id].sort().join("|");
+    if(!pairs.has(key) || pairs.get(key).pct < pct) pairs.set(key, { a:s, b:o, pct });
+  }));
+  const list = [...pairs.values()].sort((x, y)=>y.pct - x.pct);
+  if(!list.length){ box.innerHTML = `<p class="muted small">No overlapping submissions found so far.</p>`; return; }
+  box.innerHTML = `<div class="table-wrap"><table><tr><th>Overlap</th><th>Student</th><th>Student</th><th>Topic</th></tr>` + list.map(p=>
+    `<tr><td><b>${p.pct}%</b></td>
+      <td><a class="link" href="${reviewLink(p.a)}">${esc(p.a.student_name)}</a><br><span class="small muted">Roll ${esc(p.a.roll_no)}</span></td>
+      <td><a class="link" href="${reviewLink(p.b)}">${esc(p.b.student_name)}</a><br><span class="small muted">Roll ${esc(p.b.roll_no)}</span></td>
+      <td>${esc(p.a.topic_title||"")}</td></tr>`).join("") + `</table></div>`;
 }
-
-// ---- review queue + grade editor ----
-function renderReview(){
-  const box = $("reviewList");
-  const q = [...allSubmissions].sort((a,b)=>(a.ocr_confidence??100)-(b.ocr_confidence??100));
-  fillSelect($("gradeSub"), q, {label:s=>`${s.student_name} (roll ${s.roll_no}) — ${s.file_name} — AI ${s.ai_marks??"—"}`});
-  if(!q.length){ box.innerHTML = `<div class="muted small">None.</div>`; return; }
-  box.innerHTML = `<table><tr><th>Priority</th><th>Submission</th><th>OCR</th><th>AI marks</th><th>Status</th></tr>` + q.map((s,i)=>
-    `<tr><td>#${i+1}</td><td><b>${esc(s.student_name)}</b> roll ${esc(s.roll_no)}<br><span class="small muted">${esc(s.file_name)}</span></td>
-      <td>${s.ocr_confidence==null?"—":s.ocr_confidence<80?`<span class="tag ocr">${esc(s.ocr_confidence)}% check</span>`:esc(s.ocr_confidence)+"%"}</td>
-      <td>${esc(s.ai_marks??"—")}</td>
-      <td>${s.published?'<span class="tag pub">published</span>':'<span class="tag unpub">unpublished</span>'}</td></tr>`).join("") + "</table>";
-}
-
-$("saveGrade").onclick = async ()=>{
-  const s = allSubmissions.find(x=>x.id===$("gradeSub").value); if(!s) return;
-  const v = $("gradeMarks").value;
-  if(v !== "" && !Number.isInteger(+v)){ alert("Marks must be a whole number"); return; }
-  const fb = $("gradeFb").value.trim();
-  const r = await api("/submissions_admin", { method:"POST",
-    body: JSON.stringify({ id: s.id, teacher_marks: v!=="" ? +v : null, feedback: fb?[{type:"wrong",text:fb,why:"Teacher override note."}] : [] }) });
-  $("gradeMsg").innerHTML = r && r.ok
-    ? `<div class="alert ok">Saved for ${esc(s.student_name)}.</div>`
-    : `<div class="alert bad">${esc((r && r.error) || "Save failed")}</div>`;
-  await loadData();
-};
 
 // ---- publish + csv ----
 function renderPublish(){
   const sid = $("pubSub").value;
   const rows = allSubmissions.filter(s=>s.subject_id===sid);
-  let h = `<tr><th>Student</th><th>Roll / Reg</th><th>Topic</th><th>AI / Teacher</th><th>Published</th><th>Action</th></tr>`;
+  let h = `<tr><th>Student</th><th>Topic</th><th>Your mark</th><th>Status</th><th></th></tr>`;
   rows.forEach(s=>{
-    h += `<tr><td>${esc(s.student_name)}</td><td>${esc(s.roll_no)} / ${esc(s.reg_no)}</td><td>${esc(s.topic_title||"?")}</td>
-      <td>${esc(s.ai_marks??"—")} / ${esc(s.teacher_marks??"—")}</td>
-      <td>${s.published?'<span class="tag pub">yes</span>':'<span class="tag unpub">no</span>'}</td>
-      <td><button class="btn small ${s.published?"":"ok"}" data-pub="${esc(s.id)}">${s.published?"Unpublish":"Publish"}</button></td></tr>`;
+    const st = reviewState(s), verified = !!s.verified_at;
+    h += `<tr><td>${esc(s.student_name)}<br><span class="small muted">Roll ${esc(s.roll_no)}</span></td><td>${esc(s.topic_title||"")}</td>
+      <td>${s.teacher_marks!=null?`<b>${esc(s.teacher_marks)}</b>`:'<span class="muted">—</span>'}</td>
+      <td><span class="state-chip state-${st.key}">${esc(st.label)}</span></td>
+      <td>${verified
+        ? `<button class="btn small ${s.published?"":"ok"}" data-pub="${esc(s.id)}">${s.published?"Unpublish":"Publish"}</button>`
+        : `<a class="btn small" href="${reviewLink(s)}">Review first</a>`}</td></tr>`;
   });
-  if(!rows.length) h += `<tr><td colspan="6" class="muted small">No submissions for this subject.</td></tr>`;
+  if(!rows.length) h += `<tr><td colspan="5" class="muted small">No submissions for this subject.</td></tr>`;
   $("pubTable").innerHTML = h;
   $("pubTable").querySelectorAll("[data-pub]").forEach(b=>b.onclick=async ()=>{
     const s = allSubmissions.find(x=>x.id===b.dataset.pub);
-    await api("/submissions_admin", { method:"POST", body: JSON.stringify({ id: s.id, published: !s.published }) });
+    const r = await api("/submissions_admin", { method:"POST", body: JSON.stringify({ id: s.id, published: !s.published }) });
+    if(r && !r.ok) alert(r.error);
     await loadData();
   });
 }
@@ -244,7 +277,11 @@ async function bulkPublish(published){
   if(!ids.length){ alert("No submissions for this subject."); return; }
   const r = await api("/submissions_admin", { method:"POST", body: JSON.stringify({ ids, published }) });
   await loadData();
-  if(r) alert(r.ok ? `${published?"Published":"Unpublished"} ${r.updated} submission(s).` : r.error);
+  if(!r) return;
+  if(!r.ok){ alert(r.error); return; }
+  alert(published
+    ? `Published ${r.updated} verified ${r.updated===1?"submission":"submissions"}.${r.skipped?` ${r.skipped} not verified yet, so they stayed hidden from students.`:""}`
+    : `Unpublished ${r.updated} ${r.updated===1?"submission":"submissions"}.`);
 }
 $("pubAll").onclick = ()=>bulkPublish(true);
 $("unpubAll").onclick = ()=>bulkPublish(false);

@@ -226,8 +226,8 @@ function renderMarksheet(){
   const box = $("marksheet");
   const pub = mySubs.filter(s=>s.published && s.teacher_marks!=null);
   if(!pub.length){ box.innerHTML = `<div class="muted small">No published marks yet.</div>`; return; }
-  box.innerHTML = `<table><tr><th>Subject</th><th>Topic</th><th>File</th><th>Marks</th><th>Status</th></tr>` +
-    pub.map(s=>`<tr><td>${esc(s.subject_name||"")}</td><td>${esc(s.topic_title||"")}</td><td>${esc(s.file_name)}</td><td><span class="mark">${esc(s.teacher_marks)}</span></td><td><span class="tag pub">published</span>${s.late?' <span class="tag late">late</span>':""}</td></tr>`).join("") +
+  box.innerHTML = `<table><tr><th>Subject</th><th>Topic</th><th>File</th><th>Mark</th><th></th></tr>` +
+    pub.map(s=>`<tr><td>${esc(s.subject_name||"")}</td><td>${esc(s.topic_title||"")}</td><td>${esc(s.file_name)}</td><td><span class="mark">${esc(s.teacher_marks)}</span>${s.total_marks!=null?`<span class="small muted"> / ${esc(s.total_marks)}</span>`:""}</td><td>${s.late?'<span class="tag late">late</span>':""}</td></tr>`).join("") +
     `</table>`;
 }
 
@@ -235,7 +235,7 @@ function feedbackHTML(fb){
   if(!Array.isArray(fb) || !fb.length) return "";
   return fb.map(f=>{
     const cls = f.type==="wrong"?"feedback-wrong":f.type==="low"?"feedback-low":"feedback-ok";
-    return `<div class="${cls}"><b>${f.type==="wrong"?"✘ Needs correction":f.type==="low"?"⚠ Low-confidence":"✔ Good"}</b><div>${esc(f.text)}</div>${f.why?`<div class="small"><b>Why:</b> ${esc(f.why)}</div>`:""}</div>`;
+    return `<div class="${cls}"><b>${f.type==="wrong"?"To fix":f.type==="low"?"Your teacher's comment":"Done well"}</b><div>${esc(f.text)}</div>${f.why?`<div class="small">Suggestion: ${esc(f.why)}</div>`:""}</div>`;
   }).join("");
 }
 
@@ -247,10 +247,10 @@ function renderMySubs(){
     d.className = "topic";
     d.innerHTML = `<h4>${esc(s.file_name)}</h4>
       <p class="spec">${esc(s.subject_name||"")}, ${esc(s.topic_title||"")}. Submitted ${esc(fmtTime(s.submitted_at))}.</p>${s.published&&s.teacher_marks!=null?`<p><span class="mark">${esc(s.teacher_marks)}</span></p>`:""}
-      <div>${s.published?'<span class="tag pub">published</span>':'<span class="tag unpub">unpublished</span>'}
+      <div>${s.published?'<span class="tag pub">marked</span>':'<span class="tag unpub">Waiting for your teacher to mark it</span>'}
       ${s.late?'<span class="tag late">late submission</span>':""}
       ${s.file_url?'<button class="linklike" data-dl>Download</button>':""}</div>
-      <div style="margin-top:8px">${feedbackHTML(s.feedback)}</div>`;
+      <div>${feedbackHTML(s.feedback)}</div>`;
     const dl = d.querySelector("[data-dl]");
     if(dl) dl.onclick = ()=>downloadSubmission(s);
     box.appendChild(d);

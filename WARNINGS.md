@@ -6,8 +6,12 @@ Newest items go at the top of each section. Remove an item once it no longer app
 ## Needs your confirmation
 - **Semester months are assumed, not confirmed.** The code assumes odd semesters (1, 3, 5, 7) run **August–January** and even semesters (2, 4, 6, 8) run **February–July**. If the university's terms start in different months, change `ODD_TERM_START_MONTH` (currently `8`) and `EVEN_TERM_START_MONTH` (currently `2`) in [js/auth.js](js/auth.js). Every semester label, the signup admission-year list and the "current batches" button depend on these two values.
 
+- **Choose the AI provider and model (deferred, to decide later).** The review screens are built against the data shape in [db/ai_review.md](db/ai_review.md), but nothing produces it yet. Recommended: extract text straight from PDF/Word files (OCR only for scanned PDFs), a language model for marking and mistakes, a plain text-comparison method for similarity, and an AI-text detector treated as a hint only.
+- **Decided: reg. no. + roll no. is enough to sign up for now.** Anyone who knows both for a student who hasn't signed up yet could claim that account. Planned next: email verification. Students may use a personal email (universities don't issue student emails), so verification must work with any address.
+
 ## Before deploying
 - **Run [db/schema.sql](db/schema.sql) in the Neon SQL Editor first** (re-run it after every schema change). It is idempotent and adds what the code needs (`admins` table, `students.password_hash`, `submissions.file_url`, `sections.batch_year`). Without it, uploads and student/admin login fail.
+- **Publishing now requires a verified mark.** After you re-run the schema, any submission that was published before this change but never verified is hidden from students until a teacher opens it, verifies and publishes again.
 - **Nothing has been tested against the live database or a real deploy.** The code was only checked statically (no Node.js on the dev machine). Smoke-test signup, login, upload, publish and CSV after deploying.
 - **After deploy, confirm `/backend/login.js` and `/db/schema.sql` return 404.** [vercel.json](vercel.json) blocks them with a status-only route; verify it works on Vercel.
 
@@ -38,7 +42,14 @@ Newest items go at the top of each section. Remove an item once it no longer app
 - **[csvscript.js](csvscript.js) writes to a `student_roster` table that isn't in the schema**, so it will fail if run. Roster import through the admin page works because it creates `students` rows directly. Either add a `student_roster` table or point the script at `students`.
 - **Marks and topic totals must be whole numbers** (INTEGER columns). New topics default to 20 marks.
 
+## AI review
+- **Nothing fills `ai_review` yet**, so every submission shows "Not checked by AI" and teachers mark from the downloaded file. Once the pipeline writes `ai_review`, the review page shows the marked text, notes, flags and suggested mark with no frontend changes. Keep `ai_marks`, `similarity_pct` and `similarity_group` in step with it (see db/ai_review.md).
+- **AI-text detection is a hint, not evidence.** Detectors wrongly flag real writing, especially by non-native English speakers. The UI says so; don't let it drive penalties on its own.
+- **Each teacher sets their own flag thresholds** under Check submissions, "When to flag work". Defaults are 50% AI-like and 30% similar. They only decide which submissions get a tag and move up that teacher's list; the review page always shows every score and students never see flags. The panel shows how many current submissions each level flags, so tune after the first real batch (e.g. raise similarity to ~40% if honest work typically overlaps 20–35%). Saved per teacher account (`teachers.flag_settings`); re-run the schema to add the column.
+- **Students never receive AI output.** The student API returns an allow-list of fields, and only shows marks and feedback that a teacher has verified and published. If you add columns to `submissions`, they stay hidden from students unless added to `forStudent` in [backend/submissions.js](backend/submissions.js).
+
 ## Known gaps / not built yet
+- The roster lookup (`/api/roster`) has no rate limit, so someone could try many reg. numbers. It only reveals a masked name, department and section, but add rate limiting before a real launch.
 - No rate limiting on login attempts.
 - Student signup does not check the class roster CSV.
 - Email notifications and email verification are not built (the teacher "email" checkbox is disabled).

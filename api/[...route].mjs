@@ -16,6 +16,8 @@ import csv from '../backend/csv.js';
 import download from '../backend/download.js';
 import upload from '../backend/upload.js';
 import departments from '../backend/departments.js';
+import roster from '../backend/roster.js';
+import settings from '../backend/settings.js';
 
 const routes = {
   login,
@@ -36,6 +38,8 @@ const routes = {
   download,
   upload,
   departments,
+  roster,
+  settings,
 };
 
 export default async function handler(req, res) {

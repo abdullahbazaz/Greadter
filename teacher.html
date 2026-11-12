@@ -50,42 +50,58 @@
     </div>
   </details>
 
-  <details class="sec">
-    <summary><span>Submissions</span><span class="chev">›</span></summary>
+  <details class="sec" id="check" open>
+    <summary><span>Check submissions</span><span class="chev">›</span></summary>
     <div class="body">
+      <p class="small muted">The AI reads each upload, suggests a mark, points out mistakes and flags possible copying or AI-written text. Open a submission to check its work, set the mark and verify it. Students see nothing until you publish.</p>
       <div class="formgrid">
-        <div><select id="fSub"><option value="">All subjects</option></select></div>
-        <div><select id="fTopic"><option value="">All topics</option></select></div>
+        <div><select id="fSub" aria-label="Subject"><option value="">All subjects</option></select></div>
+        <div><select id="fTopic" aria-label="Topic"><option value="">All topics</option></select></div>
       </div>
-      <input id="fSearch" placeholder="Search">
+      <div class="formgrid">
+        <div><input id="fSearch" placeholder="Search by name, roll or reg. no." aria-label="Search"></div>
+        <div><select id="fState" aria-label="Status">
+          <option value="">Any status</option>
+          <option value="todo">Needs your review</option>
+          <option value="flagged">Flagged for copying or AI text</option>
+          <option value="verified">Verified, not published</option>
+          <option value="published">Published</option>
+        </select></div>
+      </div>
+      <details class="flag-settings" id="flagSettings">
+        <summary>When to flag work</summary>
+        <p class="small muted">Flags only decide which submissions get a tag and move up your list. Every score still shows on the review page, and students never see flags.</p>
+        <div class="flag-row">
+          <label for="thAi">Flag as AI-like at</label>
+          <div class="flag-input"><input id="thAi" type="range" min="1" max="100" step="1"><input id="thAiN" type="number" min="1" max="100" step="1" aria-label="AI-like threshold in percent"><span>%</span></div>
+          <p class="small muted" id="thAiCount"></p>
+        </div>
+        <div class="flag-row">
+          <label for="thSim">Flag as similar at</label>
+          <div class="flag-input"><input id="thSim" type="range" min="1" max="100" step="1"><input id="thSimN" type="number" min="1" max="100" step="1" aria-label="Similarity threshold in percent"><span>%</span></div>
+          <p class="small muted" id="thSimCount"></p>
+        </div>
+        <div class="toolbar">
+          <button class="btn small primary" id="thSave" type="button">Save thresholds</button>
+          <button class="linklike" id="thReset" type="button">Reset to 50% and 30%</button>
+        </div>
+        <div id="thMsg" role="status" aria-live="polite"></div>
+      </details>
       <div class="toolbar">
-        <button class="linklike" id="selAll">All</button>
-        <button class="linklike" id="selNone">None</button>
-        <button class="btn small" id="bulkDl">Download selected</button>
+        <button class="linklike" id="selAll">Select all shown</button>
+        <button class="linklike" id="selNone">Clear selection</button>
+        <button class="btn small" id="bulkDl">Download selected files</button>
         <span class="muted small" id="selCount"></span>
       </div>
       <div class="table-wrap"><table id="subTable"></table></div>
-      <pre class="preview" id="previewBox"></pre>
     </div>
   </details>
 
   <details class="sec">
-    <summary><span>Similarity</span><span class="chev">›</span></summary>
-    <div class="body"><div id="simGroups"></div></div>
-  </details>
-
-  <details class="sec">
-    <summary><span>Review and mark</span><span class="chev">›</span></summary>
+    <summary><span>Possible copying</span><span class="chev">›</span></summary>
     <div class="body">
-      <div id="reviewList"></div>
-      <select id="gradeSub"></select>
-      <input id="gradeMarks" type="number" min="0" step="1" placeholder="Marks">
-      <textarea id="gradeFb" rows="2" placeholder="Feedback"></textarea>
-      <div class="toolbar">
-        <button class="btn primary" id="saveGrade">Save mark</button>
-        <span class="small muted" title="Email notifications are not available yet"><input type="checkbox" id="notifyToggle" disabled> email (coming soon)</span>
-      </div>
-      <div id="gradeMsg"></div>
+      <p class="small muted">Pairs of submissions on the same topic whose text overlaps. Open both before deciding anything.</p>
+      <div id="simGroups"></div>
     </div>
   </details>
 
@@ -94,7 +110,7 @@
     <div class="body">
       <select id="pubSub"></select>
       <div class="toolbar">
-        <button class="btn primary small" id="pubAll">Publish all</button>
+        <button class="btn primary small" id="pubAll">Publish all verified</button>
         <button class="btn small" id="unpubAll">Unpublish all</button>
         <button class="btn small" id="csvBtn">Download CSV</button>
       </div>
@@ -113,6 +129,7 @@
 </div></div>
 
 <script src="js/auth.js"></script>
+<script src="js/review-render.js"></script>
 <script src="js/teacher.js"></script>
 <script src="js/date.js" defer></script>
 </body>

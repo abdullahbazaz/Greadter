@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS teachers (
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','active','inactive')),
+    flag_settings JSONB,      -- {"ai_text": 50, "similarity": 30}: when this teacher's lists flag work
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -123,7 +124,10 @@ CREATE TABLE IF NOT EXISTS submissions (
     published BOOLEAN NOT NULL DEFAULT FALSE,
     similarity_group TEXT,
     similarity_pct INTEGER,
-    feedback JSONB NOT NULL DEFAULT '[]'::jsonb,
+    feedback JSONB NOT NULL DEFAULT '[]'::jsonb,   -- teacher feedback the student sees once published
+    ai_review JSONB,          -- AI pipeline output, teachers only (shape: db/ai_review.md)
+    verified_at TIMESTAMP,    -- set when a teacher confirms the mark; publishing requires it
+    verified_by TEXT,         -- teacher or admin id
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -149,6 +153,10 @@ CREATE TABLE IF NOT EXISTS sessions (
 -- ============================================================
 ALTER TABLE students    ADD COLUMN IF NOT EXISTS password_hash TEXT;
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS file_url TEXT;
+ALTER TABLE teachers    ADD COLUMN IF NOT EXISTS flag_settings JSONB;
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS ai_review JSONB;
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP;
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS verified_by TEXT;
 ALTER TABLE sections    ADD COLUMN IF NOT EXISTS batch_year INTEGER CHECK (batch_year BETWEEN 2000 AND 2100);
 
 -- ============================================================

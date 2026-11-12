@@ -7,17 +7,20 @@ export function safeFeedback(value) {
   try { return JSON.parse(value || '[]'); } catch { return []; }
 }
 
-// Publish enforcement: students never see marks, feedback or similarity data
-// until the teacher has published the submission. AI marks are never shown.
+// Students see only teacher-verified, published results. This is an allow-list:
+// AI output (ai_review, ai_marks), similarity and AI-text flags, and anything added
+// to the table later never reach a student unless it is listed here.
 function forStudent(r) {
-  const pub = !!r.published;
+  const released = !!r.published && !!r.verified_at;
   return {
-    ...r,
-    ai_marks: null,
-    similarity_group: null,
-    similarity_pct: null,
-    teacher_marks: pub ? r.teacher_marks : null,
-    feedback: pub ? safeFeedback(r.feedback) : [],
+    id: r.id, subject_id: r.subject_id, subject_name: r.subject_name,
+    topic_id: r.topic_id, topic_type: r.topic_type, topic_title: r.topic_title,
+    file_name: r.file_name, file_type: r.file_type, size_kb: r.size_kb, file_url: r.file_url,
+    submitted_at: r.submitted_at, late: r.late,
+    published: released,
+    teacher_marks: released ? r.teacher_marks : null,
+    total_marks: released ? (r.total_marks ?? null) : null,
+    feedback: released ? safeFeedback(r.feedback) : [],
   };
 }
 
@@ -44,9 +47,10 @@ export default async function handler(req, res) {
       if (!regNo) return res.status(400).json({ error: 'reg_no required' });
 
       const rows = await sql`
-        SELECT s.*, t.title as topic_title, sub.name as subject_name
+        SELECT s.*, COALESCE(t.title, ct.title) as topic_title, t.total_marks, sub.name as subject_name
         FROM submissions s
-        LEFT JOIN topics t ON s.topic_id = t.id
+        LEFT JOIN topics t ON s.topic_type = 'teacher' AND s.topic_id = t.id
+        LEFT JOIN custom_topics ct ON s.topic_type = 'custom' AND s.topic_id = ct.id
         LEFT JOIN subjects sub ON s.subject_id = sub.id
         WHERE s.reg_no = ${regNo}
         ORDER BY s.submitted_at DESC

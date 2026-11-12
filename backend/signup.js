@@ -44,12 +44,30 @@ export default async function handler(req, res) {
 
     if (role === 'student') {
       const reg = str(b.reg, 60), roll = str(b.roll, 60), section = str(b.section, 60);
-      if (!reg || !roll || !name) return res.status(400).json({ error: 'Name, registration no. and roll no. are required' });
-      // Admin roster import may create password-less rows; self-signup must set a password.
+
+      // Self-signup: only a student already on the roster (imported by an admin)
+      // can create an account, by proving their reg. no. and roll no.
       if (!isAdmin) {
-        if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'A valid email is required' });
+        if (!reg) return res.status(400).json({ error: 'Enter your registration number' });
+        if (!roll) return res.status(400).json({ error: 'Enter your roll number' });
+        if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Enter a valid email address' });
         if (pwd.length < MIN_PW) return res.status(400).json({ error: `Password must be at least ${MIN_PW} characters` });
+
+        const [row] = await sql`SELECT reg_no, roll_no, password_hash FROM students WHERE upper(reg_no) = upper(${reg}) AND status = 'active'`;
+        if (!row) return res.status(404).json({ error: 'This registration number is not on the class roster. Check it against your student ID, or ask your department admin to add you.' });
+        if (row.password_hash) return res.status(409).json({ error: 'This registration number already has an account. Log in instead.' });
+        if (String(row.roll_no).toUpperCase() !== roll.toUpperCase()) {
+          return res.status(400).json({ error: 'That roll number does not match the roster for this registration number.' });
+        }
+        const [taken] = await sql`SELECT 1 AS x FROM students WHERE lower(email) = lower(${email}) AND reg_no <> ${row.reg_no}`;
+        if (taken) return res.status(409).json({ error: 'That email is already used by another account.' });
+
+        await sql`UPDATE students SET email = ${email}, password_hash = ${hashPassword(pwd)} WHERE reg_no = ${row.reg_no}`;
+        return res.status(200).json({ ok: true, msg: 'Account created. You can log in now.' });
       }
+
+      // Admin roster import: creates the roster entry (no password yet).
+      if (!reg || !roll || !name) return res.status(400).json({ error: 'Name, registration no. and roll no. are required' });
       // Admission year: form/roster "year" (25 or 2025), else from a roll no. like CSE-25-101.
       let year = batchYear(b.year);
       if (!year) year = batchYear((roll.match(/-(\d{2}|\d{4})-/) || [])[1]);
@@ -60,24 +78,12 @@ export default async function handler(req, res) {
         WHERE reg_no = ${reg} OR roll_no = ${roll} OR (${email} <> '' AND lower(email) = lower(${email}))
       `;
 
-      // A roster-imported student claims their account by matching reg + roll.
-      const claimable = !isAdmin && existing.length === 1 && existing[0].reg_no === reg
-        && existing[0].roll_no === roll && !existing[0].password_hash;
-      if (claimable) {
-        await sql`
-          UPDATE students
-          SET name = ${name}, email = ${email}, password_hash = ${hashPassword(pwd)},
-              section_id = COALESCE(section_id, ${sectionId})
-          WHERE reg_no = ${reg}
-        `;
-        return res.status(200).json({ ok: true, msg: 'Account activated. You can log in now.' });
-      }
       if (existing.length) return res.status(400).json({ error: 'Registration no., roll no., or email already exists' });
 
       await sql`
         INSERT INTO students (reg_no, name, roll_no, dept, email, email_verified, status, section_id, password_hash, created_at)
         VALUES (${reg}, ${name}, ${roll}, ${dept}, ${email || null}, false, 'active', ${sectionId},
-                ${pwd ? hashPassword(pwd) : null}, NOW())
+                ${null}, NOW())
       `;
       return res.status(200).json({ ok: true, msg: 'Account created.' });
     }

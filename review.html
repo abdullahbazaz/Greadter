@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Review submission - Greadter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Kalam:wght@400;700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand-wrap"><time class="today" aria-label="Today's date"></time><div class="brand">Greadter</div></div>
+  <nav><a href="teacher.html#check">Back to submissions</a></nav>
+</header>
+<main class="container wide" id="reviewMain">
+  <header class="review-head">
+    <h1 id="who">Loading submission</h1>
+    <p id="meta" class="muted"></p>
+    <p id="headTags"></p>
+  </header>
+
+  <div class="review-grid">
+    <article class="sheet-col" aria-label="Submitted work">
+      <div id="statusBox"></div>
+      <fieldset class="layers" id="layers" hidden>
+        <legend class="small">Show on the page</legend>
+        <label class="tick"><input type="checkbox" id="lyMistake" checked> <span class="key key-mistake"></span> Mistakes <span id="cMistake" class="muted"></span></label>
+        <label class="tick"><input type="checkbox" id="lyAi" checked> <span class="key key-ai"></span> Possibly AI-written <span id="cAi" class="muted"></span></label>
+        <label class="tick"><input type="checkbox" id="lyMatch" checked> <span class="key key-match"></span> Matches another student <span id="cMatch" class="muted"></span></label>
+      </fieldset>
+      <div class="sheet" id="sheet" hidden></div>
+      <p id="unplaced" class="small muted" hidden></p>
+      <div class="toolbar"><button class="btn small" id="dlBtn" hidden>Download the original file</button></div>
+    </article>
+
+    <aside class="desk" aria-label="Marking">
+      <section class="desk-block" id="aiMarkBlock" hidden>
+        <h2>AI's suggested mark</h2>
+        <div id="aiMark"></div>
+      </section>
+      <section class="desk-block" id="notesBlock" hidden>
+        <h2>Mistakes</h2>
+        <div id="notes"></div>
+      </section>
+      <section class="desk-block" id="aiTextBlock" hidden>
+        <h2>AI-written text</h2>
+        <div id="aiText"></div>
+      </section>
+      <section class="desk-block" id="simBlock" hidden>
+        <h2>Similar work</h2>
+        <div id="sim"></div>
+      </section>
+
+      <section class="desk-block verdict" id="verdict" hidden>
+        <h2>Your mark</h2>
+        <p class="state" id="state"></p>
+        <label for="marks">Mark <span id="outOf" class="muted"></span></label>
+        <div class="mark-row">
+          <input id="marks" type="number" min="0" step="1" inputmode="numeric">
+          <button class="btn small" id="useAi" type="button" hidden>Use the AI's mark</button>
+        </div>
+        <p id="marksHint" class="small muted"></p>
+        <label for="comment">Comment for the student</label>
+        <textarea id="comment" rows="4" maxlength="2000" placeholder="What they did well, and what to work on next."></textarea>
+        <p id="shareCount" class="small muted"></p>
+        <div class="toolbar">
+          <button class="btn" id="saveBtn" type="button">Save draft</button>
+          <button class="btn primary" id="verifyBtn" type="button">Verify mark</button>
+          <button class="btn ok" id="publishBtn" type="button">Publish to student</button>
+        </div>
+        <button class="linklike" id="unverifyBtn" type="button" hidden>Undo verification</button>
+        <div id="decisionMsg" role="status" aria-live="polite"></div>
+        <p class="small muted">Students only see the mark and feedback after you verify and publish. They never see the AI's mark, notes or flags.</p>
+      </section>
+    </aside>
+  </div>
+</main>
+<script src="js/auth.js"></script>
+<script src="js/review-render.js"></script>
+<script src="js/review.js"></script>
+<script src="js/date.js" defer></script>
+</body>
+</html>

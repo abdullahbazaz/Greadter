@@ -17,119 +17,95 @@
 <main class="container">
   <section class="hero">
     <h1>Student sign up</h1>
-    <p class="small muted">Fill in the fields from the top. Your department, admission year and section put you in the right class.</p>
+    <p>Only students on the class roster can sign up. Start with the registration number on your student ID.</p>
   </section>
 
-  <div class="form-col"><div>
-      <label>Registration no. <span class="small muted">(type first)</span></label>
-      <input id="sReg" placeholder="e.g. REG001" autocomplete="off">
+  <div class="form-col">
+    <form id="findForm" novalidate>
+      <label for="sReg">Registration number</label>
+      <input id="sReg" name="reg" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. REG25001" required>
+      <div class="toolbar"><button class="btn primary" id="findBtn" type="submit">Find my record</button></div>
+      <div id="findMsg" role="status" aria-live="polite"></div>
+    </form>
 
-      <label>Department</label>
-      <select id="sDept" disabled>
-        <option value="">Select department</option>
-        <option value="CSE">CSE</option>
-        <option value="ME">ME</option>
-        <option value="ECE">ECE</option>
-        <option value="CE">CE</option>
-      </select>
-
-      <label>Admission year</label>
-      <select id="sYear" disabled>
-        <option value="">Select admission year</option>
-      </select>
-
-      <label>Roll no.</label>
-      <div class="roll-wrapper">
-        <span id="rollPrefix" class="roll-prefix"></span>
-        <input id="sRoll" type="text" placeholder="101" disabled maxlength="10" autocomplete="off">
+    <form id="createForm" novalidate hidden>
+      <div class="record" id="record" tabindex="-1">
+        <h2>Is this you?</h2>
+        <dl>
+          <dt>Name</dt><dd id="rName"></dd>
+          <dt>Registration no.</dt><dd id="rReg"></dd>
+          <dt>Department</dt><dd id="rDept"></dd>
+          <dt>Class</dt><dd id="rClass"></dd>
+        </dl>
       </div>
+      <p class="small"><button class="linklike" id="notMe" type="button">Not you? Use a different number</button></p>
 
-      <label>Section</label>
-      <select id="sSection" disabled>
-        <option value="">Select section</option>
-        <option value="A">A</option>
-        <option value="B">B</option>
-        <option value="C">C</option>
-      </select>
+      <label for="sRoll">Roll number</label>
+      <input id="sRoll" name="roll" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="As on your roster, e.g. CSE-25-101" required>
+      <label for="sEmail">Email</label>
+      <input id="sEmail" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+      <label for="sPass">Password</label>
+      <input id="sPass" name="password" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" required>
+      <div class="toolbar"><button class="btn primary" id="createBtn" type="submit">Create account</button></div>
+      <div id="createMsg" role="status" aria-live="polite"></div>
+    </form>
 
-      <label>Full name</label>
-      <input id="sName" placeholder="Full name" autocomplete="off">
-
-      <label>University email</label>
-      <input id="sEmail" type="email" placeholder="name@college.edu" autocomplete="off">
-
-      <label>Password</label>
-      <input id="sPass" type="password" placeholder="Password (min. 8 characters)" minlength="8" autocomplete="new-password">
-
-      <div id="verifyMsg" class="small muted"></div>
-      <div class="toolbar"><button class="btn primary" id="signupStudent" disabled>Create account</button></div>
-      <p class="small muted">Already have an account? <a class="link" href="student-login.html">Log in</a></p>
-    </div>
+    <p class="small muted">Already have an account? <a class="link" href="student-login.html">Log in</a></p>
   </div>
 </main>
 <script src="js/auth.js"></script>
 <script>
-const sReg = document.getElementById('sReg');
-const sDept = document.getElementById('sDept');
-const sYear = document.getElementById('sYear');
-// Admission years currently studying (semesters 1–8), labelled with their semester.
-activeBatches().forEach(y=>{ const o=document.createElement('option'); o.value=String(y).slice(2); o.textContent=`${y} (${semesterText(y)})`; sYear.appendChild(o); });
-const sRoll = document.getElementById('sRoll');
-const sSection = document.getElementById('sSection');
-const rollPrefix = document.getElementById('rollPrefix');
-const verifyMsg = document.getElementById('verifyMsg');
-const signupBtn = document.getElementById('signupStudent');
-const sName = $('sName'), sEmail = $('sEmail'), sPass = $('sPass');
+let found = null;   // the roster record for the number entered
 
-const deptPrefixMap = { CSE: 'CSE', ME: 'ME', ECE: 'ECE', CE: 'CE' };
+function say(box, text, kind){ $(box).innerHTML = text ? `<div class="alert ${kind || ""}">${esc(text)}</div>` : ""; }
 
-function updateRollPrefix(){
-  const dept = sDept.value; const year = sYear.value;
-  if(dept && year){ rollPrefix.textContent = deptPrefixMap[dept] + '-' + year + '-'; sRoll.disabled = false; sRoll.focus(); }
-  else { rollPrefix.textContent = ''; sRoll.disabled = true; sRoll.value = ''; }
+function classLabel(r){
+  const parts = [];
+  if(r.section) parts.push(`Section ${r.section}`);
+  if(r.batch_year) parts.push(`admitted ${r.batch_year}`);
+  const sem = r.batch_year ? semesterText(r.batch_year) : "";
+  return parts.join(", ") + (sem ? ` (${sem.replace("Sem", "semester")})` : "") || "Not assigned to a section yet";
 }
 
-function canSubmit(){
-  return !!(
-    sReg.value.trim() && sDept.value && sYear.value && sRoll.value.trim() &&
-    sSection.value && sName.value.trim() && sEmail.value.trim() && sPass.value.trim()
-  );
-}
-
-function checkForm(){ signupBtn.disabled = !canSubmit(); verifyMsg.textContent = ''; }
-
-sReg.addEventListener('input', ()=>{
-  sDept.disabled = !sReg.value.trim();
-  if(!sReg.value.trim()){ sDept.value=''; sYear.value=''; sRoll.value=''; sSection.value=''; rollPrefix.textContent=''; sDept.disabled=true; sYear.disabled=true; sRoll.disabled=true; sSection.disabled=true; }
-  checkForm();
-});
-
-sDept.addEventListener('change', ()=>{
-  sYear.disabled = !sDept.value;
-  if(!sDept.value){ sYear.value=''; sRoll.value=''; sSection.value=''; rollPrefix.textContent=''; sYear.disabled=true; sRoll.disabled=true; sSection.disabled=true; }
-  else { sYear.disabled=false; }
-  updateRollPrefix(); checkForm();
-});
-
-sYear.addEventListener('change', updateRollPrefix);
-sRoll.addEventListener('input', checkForm);
-sSection.addEventListener('change', checkForm);
-sName.addEventListener('input', checkForm);
-sEmail.addEventListener('input', checkForm);
-sPass.addEventListener('input', checkForm);
-
-signupBtn.addEventListener('click', async (e)=>{
+$("findForm").addEventListener("submit", async e=>{
   e.preventDefault();
-  const reg = sReg.value.trim(); const dept = sDept.value; const year = sYear.value;
-  const rollSuffix = sRoll.value.trim(); const roll = dept + '-' + year + '-' + rollSuffix;
-  const section = sSection.value; const name = sName.value.trim(); const email = sEmail.value.trim(); const pass = sPass.value.trim();
+  const reg = $("sReg").value.trim();
+  if(!reg){ say("findMsg", "Enter your registration number.", "bad"); $("sReg").focus(); return; }
+  $("findBtn").disabled = true; say("findMsg", "Checking the roster…");
+  const r = await postJSON("/roster", { reg_no: reg });
+  $("findBtn").disabled = false;
+  if(!r.ok){ say("findMsg", r.error || "Couldn't check the roster. Try again.", "bad"); return; }
+  if(r.claimed){
+    $("findMsg").innerHTML = `<div class="alert">This registration number already has an account. <a class="link" href="student-login.html">Log in</a> instead.</div>`;
+    return;
+  }
+  found = r;
+  say("findMsg", "");
+  $("rName").textContent = r.masked_name || "—";
+  $("rReg").textContent = r.reg_no;
+  $("rDept").textContent = r.dept || "—";
+  $("rClass").textContent = classLabel(r);
+  $("findForm").hidden = true; $("createForm").hidden = false;
+  $("sRoll").focus();
+});
 
-  verifyMsg.textContent = "Creating account...";
-  verifyMsg.style.color = 'var(--pencil)';
+$("notMe").onclick = ()=>{
+  found = null; say("createMsg", "");
+  $("createForm").hidden = true; $("findForm").hidden = false;
+  $("sReg").select(); $("sReg").focus();
+};
 
-  const r = await signupStudent({name, roll, reg, dept, email, pass, section, year});
-  if(r.ok){ verifyMsg.textContent = r.msg; verifyMsg.style.color = 'var(--green)'; signupBtn.disabled = true; setTimeout(()=>location.href="student-login.html", 1200); }
-  else { verifyMsg.textContent = r.msg; verifyMsg.style.color = 'var(--red)'; }
+$("createForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const roll = $("sRoll").value.trim(), email = $("sEmail").value.trim(), pass = $("sPass").value;
+  if(!roll){ say("createMsg", "Enter your roll number.", "bad"); $("sRoll").focus(); return; }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ say("createMsg", "Enter a valid email address.", "bad"); $("sEmail").focus(); return; }
+  if(pass.length < 8){ say("createMsg", "Use at least 8 characters for your password.", "bad"); $("sPass").focus(); return; }
+  $("createBtn").disabled = true; say("createMsg", "Creating your account…");
+  const r = await signupStudent({ reg: found.reg_no, roll, email, pass });
+  if(!r.ok){ $("createBtn").disabled = false; say("createMsg", r.msg, "bad"); return; }
+  say("createMsg", "Account created. Taking you to log in…", "ok");
+  setTimeout(()=>location.href = "student-login.html", 1200);
 });
 </script>
 <script src="js/date.js" defer></script>
