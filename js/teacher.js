@@ -6,6 +6,7 @@ let allSubjects = [];
 let allTopics = [];
 let allSubmissions = [];
 let mySections = [];
+let scopeRestored = false;
 
 
 async function init(){
@@ -23,6 +24,15 @@ async function loadData(){
   const subjectIds = new Set(allSubjects.map(x=>x.id));
   allTopics = ((t && t.topics) || []).filter(x=>subjectIds.has(x.subject_id));
   mySections = (sec && sec.sections) || [];
+  if(!scopeRestored){
+    scopeRestored = true;
+    const saved = loadScope();
+    fillClassSelect($("fSec"), "All my classes");
+    if(saved.sec && mySections.some(x=>x.id===saved.sec)) $("fSec").value = saved.sec;
+    if(saved.sub && allSubjects.some(x=>x.id===saved.sub && (!saved.sec || x.section_id===saved.sec))){
+      const o = document.createElement("option"); o.value = saved.sub; $("fSub").appendChild(o); $("fSub").value = saved.sub;
+    }
+  }
   allSubmissions = (subs && subs.submissions) || [];
   const ids = new Set(allSubmissions.map(x=>x.id));
   checked = new Set([...checked].filter(id=>ids.has(id)));
@@ -31,7 +41,42 @@ async function loadData(){
 
 function renderAll(){ renderSubjects(); renderTopics(); renderSubs(); renderSim(); renderPublish(); renderThresholds(); renderTodo(); }
 // Everything on the page follows the one subject picker at the top.
-const inScope = s => !$("fSub").value || s.subject_id === $("fSub").value;
+// Two levels of scope: a class (one of the teacher's sections, i.e. a semester) and a subject in it.
+const subjectById = id => allSubjects.find(x=>x.id===id);
+function subjectInScope(sub){
+  if(!sub) return false;
+  const fs = $("fSub").value, fc = $("fSec").value;
+  if(fs) return sub.id === fs;
+  return !fc || sub.section_id === fc;
+}
+// Works for submissions and topics (anything with subject_id) and for subjects themselves.
+const inScope = x => subjectInScope(x.subject_id !== undefined ? subjectById(x.subject_id) : x);
+const classOf = x => mySections.find(sec=>sec.id === (subjectById(x.subject_id) || x).section_id);
+
+// Classes grouped by the semester they're in now; finished ones go last as "Past classes".
+function fillClassSelect(sel, placeholder){
+  const cur = sel.value;
+  sel.innerHTML = placeholder ? `<option value="">${esc(placeholder)}</option>` : "";
+  const groups = new Map();
+  [...mySections].sort((a, b)=>(semesterOf(a.batch_year) ?? 99) - (semesterOf(b.batch_year) ?? 99) || sectionLabel(a).localeCompare(sectionLabel(b)))
+    .forEach(sec=>{
+      const sem = semesterOf(sec.batch_year);
+      const g = sem == null ? "No admission year set" : sem > SEMESTERS ? "Past classes" : sem < 1 ? "Not started yet" : `Semester ${sem}`;
+      if(!groups.has(g)) groups.set(g, []);
+      groups.get(g).push(sec);
+    });
+  groups.forEach((list, g)=>{
+    const og = document.createElement("optgroup"); og.label = g;
+    list.forEach(sec=>{ const o = document.createElement("option"); o.value = sec.id; o.textContent = sectionLabel(sec); og.appendChild(o); });
+    sel.appendChild(og);
+  });
+  if([...sel.options].some(o=>o.value===cur)) sel.value = cur;
+}
+
+// Remember the last class/subject on this device, so the dashboard opens where the teacher left it.
+const SCOPE_KEY = "greadter_teacher_scope";
+function saveScope(){ try{ localStorage.setItem(SCOPE_KEY, JSON.stringify({ sec:$("fSec").value, sub:$("fSub").value })); }catch(e){} }
+function loadScope(){ try{ return JSON.parse(localStorage.getItem(SCOPE_KEY) || "{}") || {}; }catch(e){ return {}; } }
 
 function fillSelect(sel, items, {placeholder, label=x=>x.name}={}){
   const cur = sel.value;
@@ -43,12 +88,21 @@ function fillSelect(sel, items, {placeholder, label=x=>x.name}={}){
 // ---- subjects ----
 function renderSubjects(){
   const box = $("subList"); box.innerHTML = "";
-  allSubjects.forEach(s=>{
+  const fc = $("fSec").value;
+  let lastSec = null;
+  [...allSubjects].filter(s=>!fc || s.section_id===fc)
+    .sort((a, b)=>(semesterOf((classOf(a)||{}).batch_year) ?? 99) - (semesterOf((classOf(b)||{}).batch_year) ?? 99)
+      || sectionLabel(classOf(a)).localeCompare(sectionLabel(classOf(b))) || a.name.localeCompare(b.name))
+    .forEach(s=>{
+    if(!fc && s.section_id !== lastSec){
+      lastSec = s.section_id;
+      const h = document.createElement("h4"); h.className = "topic-group"; h.textContent = sectionLabel(classOf(s)) || "Unknown class"; box.appendChild(h);
+    }
     const n = allTopics.filter(t=>t.subject_id===s.id).length;
     const d = document.createElement("div");
     d.className = "rowline"; d.style.cursor = "default";
-    const secName = sectionLabel(mySections.find(x=>x.id===s.section_id));
-    d.innerHTML = `<span class="t">${esc(s.name)} <span class="s">${esc([s.code, secName, `${n} ${n===1?"topic":"topics"}`, (s.assignment_mode||"single")+" topic mode"].filter(Boolean).join(", "))}</span></span>
+    const mode = { single:"everyone answers the same topic", multiple:"students choose a topic", custom:"students can propose a topic" }[s.assignment_mode || "single"];
+    d.innerHTML = `<span class="t">${esc(s.name)} <span class="s">${esc([s.code, `${n} ${n===1?"topic":"topics"}`, mode].filter(Boolean).join(", "))}</span></span>
       <span><span class="toolbar" style="margin:0"><button class="linklike" data-act="ren">Rename</button><button class="linklike" data-act="del">Delete</button></span></span>`;
     d.querySelector('[data-act="ren"]').onclick = async ()=>{
       const v = prompt("New subject name:", s.name); if(!v || !v.trim()) return;
@@ -62,12 +116,20 @@ function renderSubjects(){
     box.appendChild(d);
   });
   if(!mySections.length) box.innerHTML = `<div class="alert bad">No sections are assigned to you yet. Ask an admin to assign your sections.</div>`;
-  else if(!allSubjects.length) box.innerHTML = `<div class="muted small">No subjects yet.</div>`;
-  fillSelect($("subSec"), mySections, {placeholder: mySections.length ? "Pick section" : "No sections assigned", label: sectionLabel});
-  fillSelect($("fSub"), allSubjects, {placeholder:"All subjects"});
-  fillSelect($("topicSub"), allSubjects, {placeholder: allSubjects.length ? "Pick a subject" : "Add a subject first"});
+  else if(!box.children.length) box.innerHTML = `<div class="muted small">No subjects in ${fc ? "this class" : "your classes"} yet. Add one below.</div>`;
+  fillClassSelect($("fSec"), "All my classes");
+  fillClassSelect($("subSec"), mySections.length ? "Pick a class" : "No classes assigned");
+  if(!$("subSec").value && fc) $("subSec").value = fc;
+  // Subject picker only lists the chosen class's subjects; drop a subject that no longer fits.
+  const classSubjects = allSubjects.filter(s=>!fc || s.section_id===fc);
+  fillSelect($("fSub"), classSubjects, {placeholder: fc ? "All subjects in this class" : "All subjects", label: s=>fc ? s.name : `${s.name} (${sectionLabel(classOf(s))})`});
+  fillSelect($("topicSub"), classSubjects, {placeholder: classSubjects.length ? "Pick a subject" : "Add a subject first", label: s=>fc ? s.name : `${s.name} (${sectionLabel(classOf(s))})`});
   if(!$("topicSub").value && $("fSub").value) $("topicSub").value = $("fSub").value;
-  $("cntSubj").textContent = allSubjects.length ? String(allSubjects.length) : "";
+  const nSub = classSubjects.length;
+  $("cntSubj").textContent = nSub ? String(nSub) : "";
+  $("scopeHint").textContent = mySections.length
+    ? `You teach ${mySections.length} ${mySections.length===1?"class":"classes"}. Everything on this page follows these two choices.`
+    : "No classes are assigned to you yet. Ask an admin to assign your sections.";
 }
 
 $("addSubBtn").onclick = async ()=>{
@@ -116,11 +178,12 @@ function renderTopics(){
   const subs = allSubjects.filter(inScope);
   const shown = allTopics.filter(inScope);
   if(!allSubjects.length) box.innerHTML = `<p class="muted small">Add a subject first, then its topics.</p>`;
-  else if(!shown.length) box.innerHTML = `<p class="muted small">No topics yet${$("fSub").value ? " for this subject" : ""}. Add one below.</p>`;
+  else if(!shown.length) box.innerHTML = `<p class="muted small">No topics yet${$("fSub").value ? " for this subject" : $("fSec").value ? " in this class" : ""}. Add one below.</p>`;
   subs.forEach(sub=>{
     const list = shown.filter(t=>t.subject_id===sub.id);
     if(!list.length) return;
-    const h = document.createElement("h4"); h.className = "topic-group"; h.textContent = sub.name; box.appendChild(h);
+    const h = document.createElement("h4"); h.className = "topic-group";
+    h.textContent = $("fSec").value ? sub.name : `${sub.name}, ${sectionLabel(classOf(sub))}`; box.appendChild(h);
     list.forEach(t=>box.appendChild(topicItem(t)));
   });
   $("cntTopic").textContent = shown.length ? String(shown.length) : "";
@@ -137,7 +200,8 @@ $("addTopicBtn").onclick = async ()=>{
 };
 
 // ---- submissions to check ----
-$("fSub").addEventListener("change", ()=>{ if($("fSub").value) $("topicSub").value = $("fSub").value; renderAll(); });
+$("fSec").addEventListener("change", ()=>{ $("fSub").value = ""; $("fTopic").value = ""; saveScope(); renderAll(); });
+$("fSub").addEventListener("change", ()=>{ if($("fSub").value) $("topicSub").value = $("fSub").value; $("fTopic").value = ""; saveScope(); renderAll(); });
 $("fTopic").addEventListener("change", renderSubs);
 $("fSearch").addEventListener("input", renderSubs);
 $("fState").addEventListener("change", renderSubs);
@@ -173,7 +237,7 @@ function renderSubs(){
     const st = reviewState(s);
     h += `<tr><td><input type="checkbox" data-id="${esc(s.id)}" ${checked.has(s.id)?"checked":""} aria-label="Select ${esc(s.student_name)}"></td>
       <td><b>${esc(s.student_name)}</b><br><span class="small muted">Roll ${esc(s.roll_no)}</span></td>
-      <td>${esc(s.topic_title||"")}<br><span class="small muted">${esc(s.subject_name||"")}, ${esc(fmtTime(s.submitted_at))}</span></td>
+      <td>${esc(s.topic_title||"")}<br><span class="small muted">${esc(s.subject_name||"")}${$("fSec").value ? "" : `, ${esc(sectionLabel(classOf(s)))}`}<br>${esc(fmtTime(s.submitted_at))}</span></td>
       <td>${aiCell(s)}</td>
       <td>${flagTags(s) || '<span class="muted small">None</span>'}</td>
       <td>${s.teacher_marks!=null?`<b>${esc(s.teacher_marks)}</b>`:'<span class="muted">—</span>'}</td>
@@ -295,7 +359,7 @@ function renderPublish(){
   const rows = allSubmissions.filter(inScope);
   const waiting = rows.filter(s=>s.verified_at && !s.published).length;
   $("cntPub").textContent = waiting ? `${waiting} ready` : "";
-  $("pubHint").textContent = $("fSub").value ? "" : "Showing every subject. Choose a subject at the top to download its marks as a CSV.";
+  $("pubHint").textContent = $("fSub").value ? "" : "Choose a subject at the top to download its marks as a CSV.";
   let h = `<tr><th>Student</th><th>Topic</th><th>Your mark</th><th>Status</th><th></th></tr>`;
   rows.forEach(s=>{
     const st = reviewState(s), verified = !!s.verified_at;

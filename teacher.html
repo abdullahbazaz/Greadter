@@ -21,9 +21,15 @@
   </section>
 
   <div class="scope">
-    <label for="fSub">Subject</label>
-    <select id="fSub"><option value="">All subjects</option></select>
-    <p class="small muted">Everything on this page follows this choice.</p>
+    <div class="scope-field">
+      <label for="fSec">Class</label>
+      <select id="fSec"><option value="">All my classes</option></select>
+    </div>
+    <div class="scope-field">
+      <label for="fSub">Subject</label>
+      <select id="fSub"><option value="">All subjects</option></select>
+    </div>
+    <p class="small muted" id="scopeHint">Everything on this page follows these two choices.</p>
   </div>
 
   <section class="todo" aria-labelledby="todoTitle">
@@ -114,7 +120,7 @@
     <details class="sec" id="subjects">
       <summary>
         <span class="sum-text"><span class="sum-title">Subjects</span>
-          <span class="sum-desc">The courses you teach, each tied to one of your sections.</span></span>
+          <span class="sum-desc">The courses you teach in each of your classes.</span></span>
         <span class="sum-side"><span class="count" id="cntSubj"></span><span class="chev">›</span></span>
       </summary>
       <div class="body">
@@ -124,7 +130,7 @@
           <div><label for="subName">Name</label><input id="subName" placeholder="e.g. Data Structures"></div>
           <div><label for="subCode">Code <span class="muted">(optional)</span></label><input id="subCode" placeholder="e.g. CS201"></div>
         </div>
-        <label for="subSec">Section</label>
+        <label for="subSec">Class</label>
         <select id="subSec"></select>
         <label for="subMode">How students pick a topic</label>
         <select id="subMode">
