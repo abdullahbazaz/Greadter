@@ -21,28 +21,33 @@
     <p id="headTags"></p>
   </header>
 
+  <div class="ai-bar" id="aiBar" hidden>
+    <button class="btn primary" id="runAi" type="button">Run AI check</button>
+    <p id="aiState" class="small" role="status" aria-live="polite"></p>
+  </div>
+  <div id="statusBox"></div>
+
   <div class="review-grid">
     <article class="sheet-col" aria-label="Submitted work">
-      <div id="statusBox"></div>
-      <fieldset class="layers" id="layers" hidden>
-        <legend class="small">Show on the page</legend>
-        <label class="tick"><input type="checkbox" id="lyMistake" checked> <span class="key key-mistake"></span> Mistakes <span id="cMistake" class="muted"></span></label>
-        <label class="tick"><input type="checkbox" id="lyAi" checked> <span class="key key-ai"></span> Possibly AI-written <span id="cAi" class="muted"></span></label>
-        <label class="tick"><input type="checkbox" id="lyMatch" checked> <span class="key key-match"></span> Matches another student <span id="cMatch" class="muted"></span></label>
-      </fieldset>
-      <div class="sheet" id="sheet" hidden></div>
-      <p id="unplaced" class="small muted" hidden></p>
-      <div class="toolbar"><button class="btn small" id="dlBtn" hidden>Download the original file</button></div>
+      <div class="viewer-tools" id="viewerTools" hidden>
+        <button class="btn small" id="drawBtn" type="button" aria-pressed="false">Mark a diagram</button>
+        <label class="tick"><input type="checkbox" id="lyIssues" checked> <span class="key key-mistake"></span> Issues</label>
+        <label class="tick"><input type="checkbox" id="lyAi" checked> <span class="key key-ai"></span> Possibly AI-written</label>
+        <p class="small muted" id="editHint">Select text on the page to mark it as an issue. To mark a diagram, press "Mark a diagram" and drag a box around it.</p>
+      </div>
+      <div id="pdf"></div>
+      <div class="toolbar"><button class="btn small" id="dlBtn" type="button" hidden>Download the original file</button></div>
     </article>
 
     <aside class="desk" aria-label="Marking">
+      <section class="desk-block">
+        <h2>Issues <span class="count" id="issueCount"></span></h2>
+        <p class="small muted" id="issueHelp">Issues show in red on the page. Click one to read it. Students see the issues you keep once you publish.</p>
+        <ol class="notes" id="issueList"></ol>
+      </section>
       <section class="desk-block" id="aiMarkBlock" hidden>
         <h2>AI's suggested mark</h2>
         <div id="aiMark"></div>
-      </section>
-      <section class="desk-block" id="notesBlock" hidden>
-        <h2>Mistakes</h2>
-        <div id="notes"></div>
       </section>
       <section class="desk-block" id="aiTextBlock" hidden>
         <h2>AI-written text</h2>
@@ -64,21 +69,22 @@
         <p id="marksHint" class="small muted"></p>
         <label for="comment">Comment for the student</label>
         <textarea id="comment" rows="4" maxlength="2000" placeholder="What they did well, and what to work on next."></textarea>
-        <p id="shareCount" class="small muted"></p>
-        <div class="toolbar">
+        <div class="toolbar" id="decideBtns">
           <button class="btn" id="saveBtn" type="button">Save draft</button>
           <button class="btn primary" id="verifyBtn" type="button">Verify mark</button>
           <button class="btn ok" id="publishBtn" type="button">Publish to student</button>
         </div>
         <button class="linklike" id="unverifyBtn" type="button" hidden>Undo verification</button>
         <div id="decisionMsg" role="status" aria-live="polite"></div>
-        <p class="small muted">Students only see the mark and feedback after you verify and publish. They never see the AI's mark, notes or flags.</p>
+        <p class="small muted" id="finalNote">Publishing sends the student their mark, your comment and the marked PDF. Published marks are final and can't be changed.</p>
       </section>
     </aside>
   </div>
 </main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/review-render.js"></script>
+<script src="js/pdf-mark.js"></script>
 <script src="js/review.js"></script>
 <script src="js/date.js" defer></script>
 </body>

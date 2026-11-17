@@ -1,6 +1,7 @@
 import sql from './db.js';
 import { requireRole, STAFF, canAccessSubject, intOrNull } from './auth.js';
 import { safeFeedback } from './submissions.js';
+import { sanitizeAnnotations } from './annotations.js';
 
 const normalise = rows => rows.map(r => ({ ...r, feedback: safeFeedback(r.feedback) }));
 
@@ -44,7 +45,7 @@ export default async function handler(req, res) {
         SELECT s.id, s.subject_id, s.topic_id, s.topic_type, s.student_name, s.roll_no, s.reg_no, s.dept,
                s.file_name, s.file_type, s.size_kb, s.file_url, s.submitted_at, s.late,
                s.ai_marks, s.teacher_marks, s.published, s.similarity_group, s.similarity_pct, s.feedback,
-               s.verified_at, s.ai_review - 'text' AS ai_review,
+               s.verified_at, s.ai_review - 'text' AS ai_review, jsonb_array_length(s.annotations) AS issue_count,
                COALESCE(st.title, ct.title) AS topic_title, st.total_marks, sub.name AS subject_name
         FROM submissions s
         LEFT JOIN topics st ON s.topic_type = 'teacher' AND s.topic_id = st.id
@@ -66,6 +67,7 @@ export default async function handler(req, res) {
     // Publishing only releases verified submissions; the rest are reported as skipped.
     if (Array.isArray(b.ids)) {
       if (!has('published')) return res.status(400).json({ error: 'published required' });
+      if (!b.published) return res.status(409).json({ error: 'Published marks are final and cannot be unpublished.' });
       const ids = b.ids.filter(x => typeof x === 'string');
       if (!ids.length) return res.status(200).json({ ok: true, updated: 0, skipped: 0 });
       const rows = await sql`
@@ -81,10 +83,10 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, updated: rows.length, skipped: ids.length - rows.length });
     }
 
-    // Single submission: { id, teacher_marks?, feedback?, verify?, published? }
+    // Single submission: { id, teacher_marks?, feedback?, annotations?, verify?, published? }
     const { id } = b;
     if (!id) return res.status(400).json({ error: 'id required' });
-    if (!['teacher_marks', 'feedback', 'verify', 'published'].some(has)) {
+    if (!['teacher_marks', 'feedback', 'annotations', 'verify', 'published'].some(has)) {
       return res.status(400).json({ error: 'Nothing to update' });
     }
     const marksInput = has('teacher_marks') ? intOrNull(b.teacher_marks) : undefined;
@@ -97,6 +99,8 @@ export default async function handler(req, res) {
     `;
     if (!existing) return res.status(404).json({ error: 'Submission not found' });
     if (!(await canAccessSubject(session, existing.subject_id))) return res.status(403).json({ error: 'Not your subject' });
+    // Grades are final once published: nothing about this submission can change after that.
+    if (existing.published) return res.status(409).json({ error: 'This mark is published and final, so it can no longer be changed.' });
 
     const nextMarks = marksInput !== undefined ? marksInput : existing.teacher_marks;
     if (nextMarks != null && existing.total_marks != null && nextMarks > existing.total_marks) {
@@ -128,10 +132,13 @@ export default async function handler(req, res) {
       why: f?.why ? String(f.why).slice(0, 2000) : undefined,
     })).filter(f => f.text);
 
+    const nextAnnotations = has('annotations') ? sanitizeAnnotations(b.annotations) : sanitizeAnnotations(existing.annotations);
+
     await sql`
       UPDATE submissions
       SET teacher_marks = ${nextMarks ?? null},
           feedback = ${JSON.stringify(nextFeedback)},
+          annotations = ${JSON.stringify(nextAnnotations)},
           verified_at = ${verifiedAt}, verified_by = ${verifiedBy},
           published = ${nextPublished}
       WHERE id = ${id}

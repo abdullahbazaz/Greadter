@@ -40,9 +40,9 @@
         <option value="ECE">ECE</option>
         <option value="CE">CE</option>
       </select>
-      <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.odt,.rtf">
-      <div class="drop" id="dropZone">Drop files here, or click to choose</div>
-      <div class="small muted">PDF, Word, PowerPoint, OpenDocument, RTF or TXT, up to 25 MB each.</div>
+      <input type="file" id="fileInput" multiple accept=".pdf,application/pdf">
+      <div class="drop" id="dropZone">Drop your PDF here, or click to choose</div>
+      <div class="small muted">PDF only, up to 3 MB and 20 pages each. Export Word or other documents as PDF first.</div>
       <div id="fileList" class="small muted"></div>
       <div id="uploadMsg"></div>
       <div class="toolbar"><button class="btn primary" id="uploadBtn" disabled>Upload files</button></div>
@@ -67,6 +67,7 @@
   import { upload } from 'https://esm.sh/@vercel/blob@2.9.0/client';
   window.blobUpload = upload;
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="js/student.js"></script>
 <script src="js/date.js" defer></script>
 </body>

@@ -242,7 +242,7 @@ function renderSubs(){
       <td>${flagTags(s) || '<span class="muted small">None</span>'}</td>
       <td>${s.teacher_marks!=null?`<b>${esc(s.teacher_marks)}</b>`:'<span class="muted">—</span>'}</td>
       <td><span class="state-chip state-${st.key}">${esc(st.label)}</span></td>
-      <td><a class="btn small ${st.key==="ready"?"primary":""}" href="${reviewLink(s)}">${st.key==="ready"||st.key==="manual"||st.key==="failed"?"Review":"Open"}</a></td></tr>`;
+      <td><a class="btn small ${st.key==="ready"?"primary":""}" href="${reviewLink(s)}">${st.key==="ready"?"Review":"Open"}</a></td></tr>`;
   });
   if(!rows.length) h += `<tr><td colspan="8" class="muted small">${allSubmissions.length ? "No submissions match these filters." : "No submissions yet. They appear here when students upload work."}</td></tr>`;
   const tbl = $("subTable"); tbl.innerHTML = h;
@@ -261,7 +261,7 @@ function renderTodo(){
   const plural = (n, one, many) => `${n} ${n===1?one:many}`;
   const items = [
     ready && { text:`${plural(ready, "submission is", "submissions are")} ready for you to review.`, go:()=>jump("check", "todo") },
-    manual && { text:`${plural(manual, "submission needs", "submissions need")} marking by hand: the AI couldn't check ${manual===1?"it":"them"}.`, go:()=>jump("check", "todo") },
+    manual && { text:`${plural(manual, "submission hasn't", "submissions haven't")} been checked yet, or the check failed. Select ${manual===1?"it":"them"} and run the AI check, or mark ${manual===1?"it":"them"} yourself.`, go:()=>jump("check", "todo") },
     flagged && { text:`${plural(flagged, "submission is", "submissions are")} flagged for possible copying or AI-written text.`, go:()=>jump("check", "flagged") },
     toPublish && { text:`${plural(toPublish, "mark is", "marks are")} verified and waiting to be published.`, go:()=>jump("publish") },
     checking && { text:`${plural(checking, "submission is", "submissions are")} still being checked by the AI. Nothing to do yet.`, quiet:true },
@@ -326,6 +326,40 @@ $("thSave").onclick = async ()=>{
     : `<div class="alert bad">${esc(r.error || "Couldn't save. Try again.")}</div>`;
 };
 
+// ---- bulk AI check: two at a time, each its own request so none hits the time limit ----
+$("bulkAi").onclick = async ()=>{
+  const chosen = allSubmissions.filter(s=>checked.has(s.id));
+  const runnable = chosen.filter(canRunAi);
+  const skipped = chosen.length - runnable.length;
+  if(!chosen.length){ alert("Select the submissions to check first."); return; }
+  if(!runnable.length){ alert("None of the selected submissions can be checked: they're published, already being checked, or not PDFs."); return; }
+  const redo = runnable.filter(s=>s.ai_review && s.ai_review.status === "done").length;
+  if(!confirm(`Run the AI check on ${runnable.length} ${runnable.length===1?"submission":"submissions"}?${redo?` ${redo} already checked will be checked again (their AI issues are replaced; issues you added stay).`:""}${skipped?` ${skipped} can't be checked and will be skipped.`:""}`)) return;
+  const btn = $("bulkAi"), msg = $("bulkMsg");
+  btn.disabled = true;
+  let done = 0, failed = 0; const errors = [];
+  const show = ()=>{ msg.innerHTML = `<div class="alert">Checking ${done + failed} of ${runnable.length}… Keep this page open.</div>`; };
+  show();
+  const queue = [...runnable];
+  async function worker(){
+    while(queue.length){
+      const s = queue.shift();
+      let text = "";
+      try{
+        const res = await fetch(`${API_BASE}/download?id=${encodeURIComponent(s.id)}`, { headers: authHeaders() });
+        if(res.ok) text = await extractPdfText(await res.arrayBuffer());
+      }catch(e){ text = ""; }
+      const r = await api("/ai_check", { method:"POST", body: JSON.stringify({ id: s.id, text }) });
+      if(r && r.ok) done++; else { failed++; errors.push(`${s.student_name}: ${(r && r.error) || "failed"}`); }
+      show();
+    }
+  }
+  await Promise.all([worker(), worker()]);
+  btn.disabled = false;
+  msg.innerHTML = `<div class="alert ${failed ? "bad" : "ok"}">Checked ${done} of ${runnable.length}.${failed ? ` ${failed} failed: ${esc(errors.slice(0, 3).join("; "))}${errors.length > 3 ? "…" : ""}` : " Open each one to review the issues."}</div>`;
+  await loadData();
+};
+
 $("selAll").onclick = ()=>{ filteredSubs().forEach(s=>checked.add(s.id)); renderSubs(); };
 $("selNone").onclick = ()=>{ checked.clear(); renderSubs(); };
 $("bulkDl").onclick = async ()=>{
@@ -366,34 +400,38 @@ function renderPublish(){
     h += `<tr><td>${esc(s.student_name)}<br><span class="small muted">Roll ${esc(s.roll_no)}</span></td><td>${esc(s.topic_title||"")}</td>
       <td>${s.teacher_marks!=null?`<b>${esc(s.teacher_marks)}</b>`:'<span class="muted">—</span>'}</td>
       <td><span class="state-chip state-${st.key}">${esc(st.label)}</span></td>
-      <td>${verified
-        ? `<button class="btn small ${s.published?"":"ok"}" data-pub="${esc(s.id)}">${s.published?"Unpublish":"Publish"}</button>`
-        : `<a class="btn small" href="${reviewLink(s)}">Review first</a>`}</td></tr>`;
+      <td>${s.published
+        ? `<span class="small muted">Final</span>`
+        : verified
+          ? `<button class="btn small ok" data-pub="${esc(s.id)}">Publish</button>`
+          : `<a class="btn small" href="${reviewLink(s)}">Review first</a>`}</td></tr>`;
   });
   if(!rows.length) h += `<tr><td colspan="5" class="muted small">No submissions yet.</td></tr>`;
   $("pubTable").innerHTML = h;
   $("pubTable").querySelectorAll("[data-pub]").forEach(b=>b.onclick=async ()=>{
     const s = allSubmissions.find(x=>x.id===b.dataset.pub);
-    const r = await api("/submissions_admin", { method:"POST", body: JSON.stringify({ id: s.id, published: !s.published }) });
+    if(!confirm(`Publish ${s.teacher_marks} to ${s.student_name}? Published marks are final and can't be changed.`)) return;
+    const r = await api("/submissions_admin", { method:"POST", body: JSON.stringify({ id: s.id, published: true }) });
     if(r && !r.ok) alert(r.error);
     await loadData();
   });
 }
 
-// Bulk publish/unpublish: one request instead of one per submission.
+// Bulk publish (verified only; publishing is final): one request instead of one per submission.
 async function bulkPublish(published){
-  const ids = allSubmissions.filter(inScope).map(s=>s.id);
-  if(!ids.length){ alert("There are no submissions to publish yet."); return; }
+  const ready = allSubmissions.filter(inScope).filter(s=>s.verified_at && !s.published);
+  if(!ready.length){ alert("No verified marks are waiting to be published."); return; }
+  if(!confirm(`Publish ${ready.length} verified ${ready.length===1?"mark":"marks"}? Students will see their marks, comments and marked PDFs. Published marks are final and can't be changed.`)) return;
+  const ids = ready.map(s=>s.id);
   const r = await api("/submissions_admin", { method:"POST", body: JSON.stringify({ ids, published }) });
   await loadData();
   if(!r) return;
   if(!r.ok){ alert(r.error); return; }
   alert(published
     ? `Published ${r.updated} verified ${r.updated===1?"submission":"submissions"}.${r.skipped?` ${r.skipped} not verified yet, so they stayed hidden from students.`:""}`
-    : `Unpublished ${r.updated} ${r.updated===1?"submission":"submissions"}.`);
+    : "");
 }
 $("pubAll").onclick = ()=>bulkPublish(true);
-$("unpubAll").onclick = ()=>bulkPublish(false);
 $("csvBtn").onclick = ()=>{
   const sid = $("fSub").value; if(!sid){ alert("Choose a subject at the top of the page first."); return; }
   downloadAuthed(`/csv?subject_id=${encodeURIComponent(sid)}`, `subject_${sid}_marks.csv`);

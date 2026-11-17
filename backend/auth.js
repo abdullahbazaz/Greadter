@@ -64,8 +64,11 @@ export async function requireRole(req, res, roles) {
 
 export const str = (v, max = 500) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-export const ALLOWED_EXT = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'odt', 'rtf'];
-export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+// Assignments are PDF only: they're marked on the page (text and diagrams) and returned as a marked PDF.
+export const ALLOWED_EXT = ['pdf'];
+// 3 MB fits a typed 20-page assignment with diagrams; scans or photo-heavy PDFs need compressing.
+export const MAX_UPLOAD_BYTES = 3 * 1024 * 1024;
+export const MAX_PAGES = 20;
 
 // ---- scoping (teachers only reach sections an admin assigned them) ----
 export async function canAccessSection(session, sectionId) {

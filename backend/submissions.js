@@ -1,5 +1,6 @@
 import sql from './db.js';
 import { requireRole, newId, str, ALLOWED_EXT, MAX_UPLOAD_BYTES } from './auth.js';
+import { forStudentAnnotations } from './annotations.js';
 
 // feedback may come back as a JSON string when the column is text; normalise it.
 export function safeFeedback(value) {
@@ -21,6 +22,7 @@ function forStudent(r) {
     teacher_marks: released ? r.teacher_marks : null,
     total_marks: released ? (r.total_marks ?? null) : null,
     feedback: released ? safeFeedback(r.feedback) : [],
+    annotations: released ? forStudentAnnotations(r.annotations) : [],
   };
 }
 
@@ -73,9 +75,9 @@ export default async function handler(req, res) {
 
     if (!subjectId) return res.status(400).json({ error: 'subject_id required' });
     if (!topicId) return res.status(400).json({ error: 'topic_id required' });
-    if (!ALLOWED_EXT.includes(ext)) return res.status(400).json({ error: 'File type not allowed' });
+    if (!ALLOWED_EXT.includes(ext)) return res.status(400).json({ error: 'Only PDF files can be submitted' });
     if (!Number.isFinite(sizeKb) || sizeKb < 0 || sizeKb * 1024 > MAX_UPLOAD_BYTES) {
-      return res.status(400).json({ error: 'File exceeds 25MB limit' });
+      return res.status(400).json({ error: 'The PDF is over the 3 MB limit' });
     }
 
     // Identity comes from the database, not from what the browser typed in.

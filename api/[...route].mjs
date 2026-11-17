@@ -18,6 +18,8 @@ import upload from '../backend/upload.js';
 import departments from '../backend/departments.js';
 import roster from '../backend/roster.js';
 import settings from '../backend/settings.js';
+import aiCheck from '../backend/ai_check.js';
+import markedPdf from '../backend/marked_pdf.js';
 
 const routes = {
   login,
@@ -40,6 +42,8 @@ const routes = {
   departments,
   roster,
   settings,
+  ai_check: aiCheck,
+  marked_pdf: markedPdf,
 };
 
 export default async function handler(req, res) {

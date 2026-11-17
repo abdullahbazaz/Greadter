@@ -432,3 +432,57 @@ optgroup{font-weight:700;font-style:normal}
   .sum-title{font-size:21px}
   .scope-field{flex-basis:100%}
 }
+
+/* ================= PDF marking (review + student results) ================= */
+.ai-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:0 0 16px}
+.ai-bar p{margin:0}
+.viewer-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin:0 0 12px}
+.viewer-tools p{flex-basis:100%;margin:0}
+.viewer-tools [aria-pressed="true"]{background:var(--red);border-color:var(--red);color:var(--paper)}
+
+.pdfm{max-width:100%}
+.pdfm-page{position:relative;margin:0 auto;background:#fff;border:1px solid var(--rule);box-shadow:0 0 0 1px rgba(0,0,0,.02);max-width:100%}
+.pdfm-page canvas{display:block}
+.pdfm-pageno{text-align:center;margin:6px 0 18px}
+/* pdf.js text layer: invisible text over the page so it can be selected */
+.textLayer{position:absolute;inset:0;overflow:hidden;line-height:1;text-size-adjust:none;forced-color-adjust:none;transform-origin:0 0;z-index:2}
+.textLayer span,.textLayer br{color:transparent;position:absolute;white-space:pre;cursor:text;transform-origin:0% 0%}
+.textLayer ::selection{background:rgba(179,33,43,.25)}
+/* marks sit above the text; the layer lets clicks through except on marks */
+.pdfm-marks{position:absolute;inset:0;z-index:3;pointer-events:none}
+.pdfm-drawing .pdfm-marks{pointer-events:auto;cursor:crosshair}
+.pdfm-mark{position:absolute;pointer-events:auto;cursor:pointer}
+.pdfm-text{background:rgba(179,33,43,.16);border-bottom:2px solid var(--red)}
+.pdfm-region{border:2px solid var(--red);background:rgba(179,33,43,.05);border-radius:2px}
+.pdfm-mark:hover,.pdfm-mark.on{background:rgba(179,33,43,.28)}
+.pdfm-ghost{border-style:dashed;pointer-events:none}
+.pdfm-hl{position:absolute;background:rgba(244,211,94,.45);mix-blend-mode:multiply;pointer-events:none}
+.pdfm-num{
+  position:absolute;z-index:4;pointer-events:auto;transform:translate(-60%,-70%);
+  min-width:22px;height:22px;padding:0 5px;border:none;border-radius:11px;cursor:pointer;
+  background:var(--red);color:#fff;font-family:var(--hand);font-weight:700;font-size:15px;line-height:22px;
+}
+.pdfm-num:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.pdfm-hide-issues .pdfm-mark,.pdfm-hide-issues .pdfm-num{display:none}
+.pdfm-hide-ai .pdfm-hl{display:none}
+.pdfm-add{position:absolute;z-index:6;transform:translateX(-50%)}
+
+/* the dropdown that explains an issue */
+.pdfm-pop{
+  position:absolute;z-index:7;width:min(340px,90%);padding:14px 16px 12px;
+  background:var(--paper);border:2px solid var(--ink);border-top:4px solid var(--red);
+  box-shadow:4px 4px 0 rgba(0,0,0,.12);font-size:15px;
+}
+.pdfm-pop p{margin:0 0 6px}
+.pdfm-pop label{font-size:14px;margin:8px 0 2px}
+.pdfm-pop textarea{min-height:56px}
+.pdfm-pop-title{font-weight:700;padding-right:24px}
+.pdfm-pop-n{display:inline-block;min-width:22px;height:22px;padding:0 5px;border-radius:11px;background:var(--red);color:#fff;font-family:var(--hand);text-align:center;line-height:22px}
+.pdfm-close{position:absolute;top:6px;right:8px;width:28px;height:28px;border:none;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--ink)}
+.pdfm-err{color:var(--red);margin:4px 0 0}
+.note-kind .small,.pdfm-pop-title .small{font-weight:400}
+
+/* issues without an exact position: dashed when approximate, pinned to the page corner when unknown */
+.pdfm-approx{border:2px dashed var(--red);border-bottom-width:2px;background:rgba(179,33,43,.08)}
+.pdfm-pins{position:absolute;top:8px;right:8px;z-index:4;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;max-width:45%;pointer-events:auto}
+.pdfm-pins .pdfm-num{position:static;transform:none}

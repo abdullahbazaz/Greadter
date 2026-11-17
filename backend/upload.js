@@ -4,14 +4,7 @@ import { studentPrefix } from './submissions.js';
 
 // Issues short-lived client tokens so the browser can upload straight to Vercel Blob
 // (the old code called put() in the browser with no token, which cannot work).
-const CONTENT_TYPES = [
-  'application/pdf', 'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-powerpoint',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'text/plain', 'application/vnd.oasis.opendocument.text',
-  'application/rtf', 'text/rtf', 'application/octet-stream',
-];
+const CONTENT_TYPES = ['application/pdf'];
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -33,7 +26,7 @@ export default async function handler(req, res) {
         if (!pathname.startsWith(studentPrefix(session.user_id)) || pathname.includes('..')) {
           throw new Error('Invalid upload path');
         }
-        if (!ALLOWED_EXT.includes(ext)) throw new Error('File type not allowed');
+        if (!ALLOWED_EXT.includes(ext)) throw new Error('Only PDF files can be uploaded');
         return {
           allowedContentTypes: CONTENT_TYPES,
           maximumSizeInBytes: MAX_UPLOAD_BYTES,

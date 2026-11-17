@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/[...route].mjs": {
+      "maxDuration": 180
+    }
+  },
   "routes": [
     {
       "src": "/(.*)",
@@ -10,8 +15,17 @@
       },
       "continue": true
     },
-    { "src": "/(backend/.*|db/.*|csvscript\\.js|package\\.json|README\\.md|WARNINGS\\.md|remaining_features\\.txt|.*\\.csv|vercel\\.json|\\.git.*)", "status": 404 },
-    { "src": "/api/(.*)", "dest": "/api/[...route].mjs" },
-    { "src": "/", "dest": "/index.html" }
+    {
+      "src": "/(backend/.*|db/.*|csvscript\\.js|package\\.json|README\\.md|WARNINGS\\.md|remaining_features\\.txt|.*\\.csv|vercel\\.json|\\.git.*)",
+      "status": 404
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/[...route].mjs"
+    },
+    {
+      "src": "/",
+      "dest": "/index.html"
+    }
   ]
 }

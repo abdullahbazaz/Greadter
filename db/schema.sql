@@ -125,7 +125,8 @@ CREATE TABLE IF NOT EXISTS submissions (
     similarity_group TEXT,
     similarity_pct INTEGER,
     feedback JSONB NOT NULL DEFAULT '[]'::jsonb,   -- teacher feedback the student sees once published
-    ai_review JSONB,          -- AI pipeline output, teachers only (shape: db/ai_review.md)
+    ai_review JSONB,          -- AI check output, teachers only (shape: db/ai_review.md)
+    annotations JSONB NOT NULL DEFAULT '[]'::jsonb,  -- issues marked on the PDF (AI-found ones the teacher kept + teacher-added); students see these once published
     verified_at TIMESTAMP,    -- set when a teacher confirms the mark; publishing requires it
     verified_by TEXT,         -- teacher or admin id
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
@@ -155,6 +156,7 @@ ALTER TABLE students    ADD COLUMN IF NOT EXISTS password_hash TEXT;
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS file_url TEXT;
 ALTER TABLE teachers    ADD COLUMN IF NOT EXISTS flag_settings JSONB;
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS ai_review JSONB;
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS annotations JSONB NOT NULL DEFAULT '[]'::jsonb;
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP;
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS verified_by TEXT;
 ALTER TABLE sections    ADD COLUMN IF NOT EXISTS batch_year INTEGER CHECK (batch_year BETWEEN 2000 AND 2100);

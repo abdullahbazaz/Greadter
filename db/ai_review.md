@@ -1,46 +1,60 @@
-# `submissions.ai_review` — what the AI pipeline writes
+# AI check data
 
-The review page (`review.html`) reads this JSON. Teachers see it; students never do
-(the student API uses an allow-list that excludes it). Every field is optional except
-`status`; the page shows whatever is present.
+Teachers start the check with **Run AI check** on a submission, or **Run AI check on selected** in
+the list. `POST /api/ai_check { id, text }` sends the PDF to the model (backend/ai.js), then writes
+two columns on `submissions`:
+
+## `ai_review` (teachers only, never sent to students)
 
 ```jsonc
 {
-  "status": "done",                 // "pending" | "processing" | "done" | "failed"
-  "error": "Could not read the file", // only when status = "failed"; shown to the teacher
-  "checked_at": "2026-11-12T09:30:00Z",
-  "model": "name of the model or pipeline version",
-
-  // The text the checks ran on, extracted from the uploaded file.
-  // All "start"/"end" values below are character offsets into this string.
-  "text": "Full extracted text …",
-
-  // Suggested grade. The teacher accepts or changes it; it is never shown to students.
-  "suggested_marks": 14,
-  "criteria": [
-    { "name": "Meets the requirements", "marks": 6, "out_of": 8, "comment": "Covers insertion and deletion, not traversal." }
-  ],
-  "summary": "One-paragraph overall comment, written for the teacher.",
-
-  // Mistakes, in reading order. kind: "spelling" | "grammar" | "fact" | "logic" | "requirement".
-  // "quote" is the exact text at [start, end); it is used to recover if offsets drift.
-  "mistakes": [
-    { "start": 120, "end": 151, "quote": "a linked list stores in arrays", "kind": "fact",
-      "note": "Linked lists store nodes with pointers, not in a contiguous array.",
-      "suggestion": "Each node holds a value and a pointer to the next node." }
-  ],
-
-  // Likelihood (0–100) that passages were AI-generated. A signal, not proof.
-  "ai_text": { "likelihood": 62, "passages": [ { "start": 400, "end": 610 } ] },
-
-  // Other submissions on the same topic with overlapping text.
-  "similarity": [
-    { "submission_id": "s…", "pct": 48,
-      "passages": [ { "start": 700, "end": 860, "other_quote": "matching text from the other submission" } ] }
+  "status": "done",                  // "processing" | "done" | "failed"
+  "started_at": "2026-11-13T09:30:00Z",
+  "checked_at": "2026-11-13T09:31:10Z",
+  "model": "claude-opus-5-5",
+  "error": "…",                      // only when status = "failed"; shown to the teacher
+  "text": "plain text of the PDF",   // extracted in the teacher's browser; used for similarity
+  "suggested_marks": 14,             // never higher than the topic's total marks
+  "criteria": [ { "name": "Meets the requirements", "marks": 6, "out_of": 8, "comment": "…" } ],
+  "summary": "Overall comment for the teacher.",
+  "ai_text": {                       // a weak signal: detectors misjudge real writing
+    "likelihood": 62, "reasons": "…",
+    "passages": [ { "page": 2, "quote": "exact words" } ]   // shown to teachers as yellow highlights
+  },
+  "similarity": [                    // plain text comparison with the same topic, no AI
+    { "submission_id": "s…", "pct": 48, "passages": [ { "other_quote": "matching words" } ] }
   ]
 }
 ```
 
-Also keep these plain columns in step so lists and the CSV export work without parsing JSON:
-`ai_marks` = `suggested_marks`, `similarity_pct` = highest `similarity[].pct`,
-`similarity_group` = a shared label for submissions that match each other.
+`ai_marks` mirrors `suggested_marks` and `similarity_pct` the highest `similarity[].pct`, so lists
+and the CSV export don't need to read the JSON.
+
+## `annotations` (the issues; students see them once published)
+
+Each check replaces the previous AI issues (`source: "ai"`) and keeps the teacher's own. Teachers
+can delete any issue and add their own by selecting text or drawing a box around a diagram.
+Shape and validation: backend/annotations.js.
+
+```jsonc
+[
+  {
+    "id": "ai3",
+    "page": 1,
+    "kind": "text",                 // "text" | "region" (a box around a diagram, figure or table)
+    "category": "fact",             // spelling | grammar | fact | logic | requirement | diagram | other
+    "quote": "a linked list stores in arrays",
+    "note": "Linked lists store nodes linked by pointers, not in an array.",   // the dropdown text
+    "suggestion": "Each node holds a value and a pointer to the next node.",
+    "rects": [[0.12, 0.31, 0.42, 0.018]],   // fractions of the page, top-left origin
+    "source": "ai"                  // "ai" | "teacher" (students don't receive this field)
+  }
+]
+```
+
+AI text issues arrive with a `quote` and no `rects`; the review page finds the quote on the page
+the first time a teacher opens it and saves the positions. Issues it can't find stay in the list
+(and on the notes page of the marked PDF) without a red mark.
+
+The marked PDF students download (`GET /api/marked_pdf?id=`) is built on request from the original
+file plus `annotations`: red boxes, numbers, and a "Teacher's notes" page at the end.

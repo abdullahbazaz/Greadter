@@ -1,6 +1,6 @@
 // Student workspace — live API backend (Neon via Vercel). Requires js/auth.js.
-const ALLOWED_EXT = ["pdf","doc","docx","ppt","pptx","txt","odt","rtf"];
-const MAX_MB = 25;
+const ALLOWED_EXT = ["pdf"];   // assignments are PDF only
+const MAX_MB = 3, MAX_PAGES = 20;   // same limits as the server (backend/auth.js)
 
 const session = requirePageRole("student");
 let me = null;
@@ -161,14 +161,30 @@ function renderUploadInfo(){
   $("uploadBtn").disabled = uploading || !t.id || !stagedFiles.length;
 }
 
-function stageFiles(fileList){
+// Pages in a PDF, or null if it can't be opened (damaged or password-protected).
+async function pdfPageCount(file){
+  try{
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    return (await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise).numPages;
+  }catch(e){ return null; }
+}
+
+async function stageFiles(fileList){
   $("uploadMsg").innerHTML = "";
-  [...fileList].forEach(f=>{
+  const reject = msg => { $("uploadMsg").innerHTML += `<div class="alert bad">${msg}</div>`; };
+  for(const f of [...fileList]){
     const ext = f.name.includes(".") ? f.name.split(".").pop().toLowerCase() : "";
-    if(!ALLOWED_EXT.includes(ext)){ $("uploadMsg").innerHTML += `<div class="alert bad">Rejected ${esc(f.name)}: .${esc(ext)} not allowed.</div>`; return; }
-    if(f.size/1024/1024 > MAX_MB){ $("uploadMsg").innerHTML += `<div class="alert bad">Rejected ${esc(f.name)}: exceeds ${MAX_MB}MB limit.</div>`; return; }
+    if(!ALLOWED_EXT.includes(ext)){ reject(`${esc(f.name)} isn't a PDF. Save or export it as a PDF and upload that.`); continue; }
+    if(f.size/1024/1024 > MAX_MB){
+      reject(`${esc(f.name)} is ${(f.size/1048576).toFixed(1)} MB; the limit is ${MAX_MB} MB. Save it again with a smaller file size (in Word: File, Save as PDF, "Minimum size"), or compress the images in it.`); continue;
+    }
+    if(window.pdfjsLib){
+      const pages = await pdfPageCount(f);
+      if(pages == null){ reject(`${esc(f.name)} couldn't be opened. It may be damaged or password-protected; export it as a PDF again.`); continue; }
+      if(pages > MAX_PAGES){ reject(`${esc(f.name)} has ${pages} pages; assignments can be up to ${MAX_PAGES}.`); continue; }
+    }
     stagedFiles.push({ file:f, name:f.name, type:ext, sizeKB:Math.round(f.size/1024) });
-  });
+  }
   $("fileInput").value = "";
   renderFileList(); renderUploadInfo();
 }
@@ -196,7 +212,7 @@ async function doUpload(){
           access: "private",
           handleUploadUrl: API_BASE + "/upload",
           headers: { Authorization: "Bearer " + session.token },
-          contentType: f.file.type || "application/octet-stream",
+          contentType: "application/pdf",
         });
       }catch(err){
         $("uploadMsg").innerHTML = `<div class="alert bad">Could not upload ${esc(f.name)}: ${esc((err && err.message) || err)}</div>`;
@@ -227,7 +243,7 @@ function renderMarksheet(){
   const pub = mySubs.filter(s=>s.published && s.teacher_marks!=null);
   if(!pub.length){ box.innerHTML = `<div class="muted small">No published marks yet.</div>`; return; }
   box.innerHTML = `<table><tr><th>Subject</th><th>Topic</th><th>File</th><th>Mark</th><th></th></tr>` +
-    pub.map(s=>`<tr><td>${esc(s.subject_name||"")}</td><td>${esc(s.topic_title||"")}</td><td>${esc(s.file_name)}</td><td><span class="mark">${esc(s.teacher_marks)}</span>${s.total_marks!=null?`<span class="small muted"> / ${esc(s.total_marks)}</span>`:""}</td><td>${s.late?'<span class="tag late">late</span>':""}</td></tr>`).join("") +
+    pub.map(s=>`<tr><td>${esc(s.subject_name||"")}</td><td>${esc(s.topic_title||"")}</td><td>${esc(s.file_name)}</td><td><span class="mark">${esc(s.teacher_marks)}</span>${s.total_marks!=null?`<span class="small muted"> / ${esc(s.total_marks)}</span>`:""}</td><td><a class="link" href="marked.html?id=${encodeURIComponent(s.id)}">See marked work</a>${s.late?' <span class="tag late">late</span>':""}</td></tr>`).join("") +
     `</table>`;
 }
 
@@ -246,11 +262,15 @@ function renderMySubs(){
     const d = document.createElement("div");
     d.className = "topic";
     d.innerHTML = `<h4>${esc(s.file_name)}</h4>
-      <p class="spec">${esc(s.subject_name||"")}, ${esc(s.topic_title||"")}. Submitted ${esc(fmtTime(s.submitted_at))}.</p>${s.published&&s.teacher_marks!=null?`<p><span class="mark">${esc(s.teacher_marks)}</span></p>`:""}
-      <div>${s.published?'<span class="tag pub">marked</span>':'<span class="tag unpub">Waiting for your teacher to mark it</span>'}
-      ${s.late?'<span class="tag late">late submission</span>':""}
-      ${s.file_url?'<button class="linklike" data-dl>Download</button>':""}</div>
-      <div>${feedbackHTML(s.feedback)}</div>`;
+      <p class="spec">${esc(s.subject_name||"")}, ${esc(s.topic_title||"")}. Submitted ${esc(fmtTime(s.submitted_at))}.</p>
+      ${s.published&&s.teacher_marks!=null?`<p><span class="mark">${esc(s.teacher_marks)}</span>${s.total_marks!=null?`<span class="small muted"> out of ${esc(s.total_marks)}</span>`:""}</p>`:""}
+      <div>${s.published?`<span class="tag pub">marked</span>${s.annotations&&s.annotations.length?` <span class="small muted">${s.annotations.length} ${s.annotations.length===1?"issue":"issues"} marked</span>`:""}`:'<span class="tag unpub">Waiting for your teacher to mark it</span>'}
+      ${s.late?'<span class="tag late">late submission</span>':""}</div>
+      <div>${feedbackHTML(s.feedback)}</div>
+      <div class="toolbar">
+        ${s.published?`<a class="btn small primary" href="marked.html?id=${encodeURIComponent(s.id)}">See marked work</a>`:""}
+        ${s.file_url?'<button class="linklike" data-dl>Download what you submitted</button>':""}
+      </div>`;
     const dl = d.querySelector("[data-dl]");
     if(dl) dl.onclick = ()=>downloadSubmission(s);
     box.appendChild(d);

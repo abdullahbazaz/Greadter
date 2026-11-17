@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Your marked work - Greadter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Kalam:wght@400;700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand-wrap"><time class="today" aria-label="Today's date"></time><div class="brand">Greadter</div></div>
+  <nav><a href="student.html">Back to your assignments</a></nav>
+</header>
+<main class="container wide">
+  <header class="review-head">
+    <h1 id="title">Loading your marked work</h1>
+    <p id="meta" class="muted"></p>
+  </header>
+
+  <div class="review-grid" id="grid" hidden>
+    <article class="sheet-col" aria-label="Your work, marked">
+      <p class="small muted">Mistakes are marked in red. Click a mark, or its number, to see what's wrong and how to fix it.</p>
+      <div id="pdf"></div>
+    </article>
+    <aside class="desk" aria-label="Your result">
+      <section class="desk-block">
+        <h2>Your mark</h2>
+        <p class="ai-mark" id="mark"></p>
+        <div id="comment"></div>
+        <div class="toolbar"><button class="btn primary" id="dlMarked" type="button">Download marked PDF</button></div>
+        <p class="small muted">The marked PDF has the red marks and a page listing every issue, so you can keep it or print it.</p>
+      </section>
+      <section class="desk-block">
+        <h2>Issues <span class="count" id="issueCount"></span></h2>
+        <ol class="notes" id="issueList"></ol>
+      </section>
+    </aside>
+  </div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/pdf-mark.js"></script>
+<script>
+const session = requirePageRole("student");
+const id = new URLSearchParams(location.search).get("id");
+const LABEL = { spelling:"Spelling", grammar:"Grammar", fact:"Fact", logic:"Reasoning", requirement:"Missed requirement", diagram:"Diagram", other:"Note" };
+
+async function init(){
+  if(!session) return;
+  const r = await api("/submissions");
+  if(!r) return;
+  const s = (r.submissions || []).find(x=>x.id === id);
+  if(!s || !s.published){
+    $("title").textContent = "Not marked yet";
+    $("meta").innerHTML = `Your teacher hasn't published this mark yet. <a class="link" href="student.html">Back to your assignments</a>`;
+    return;
+  }
+  document.title = `${s.topic_title || "Marked work"} - Greadter`;
+  $("title").textContent = s.topic_title || s.file_name;
+  $("meta").textContent = `${s.subject_name || ""}. ${s.file_name}, submitted ${fmtTime(s.submitted_at)}.`;
+  $("mark").innerHTML = `<span class="mark">${esc(s.teacher_marks)}</span>${s.total_marks != null ? `<span class="small muted"> out of ${esc(s.total_marks)}</span>` : ""}`;
+  const comment = ((s.feedback || []).find(f=>f.type === "low") || {}).text;
+  $("comment").innerHTML = comment ? `<div class="feedback-low"><b>Your teacher's comment</b><div>${esc(comment)}</div></div>` : "";
+  $("grid").hidden = false;
+
+  const issues = s.annotations || [];
+  $("issueCount").textContent = issues.length ? String(issues.length) : "";
+  $("issueList").innerHTML = issues.length ? issues.map((a, i)=>`<li class="note-item">
+      <span class="note-n" aria-hidden="true">${i + 1}</span>
+      <div>
+        <p class="note-kind">${esc(LABEL[a.category] || "Note")} <span class="small muted">page ${esc(a.page)}${a.location ? `, ${esc(a.location)}` : ""}</span></p>
+        ${a.quote && a.kind === "text" ? `<p class="small muted"><q>${esc(a.quote)}</q></p>` : ""}
+        <p>${esc(a.note || "")}</p>
+        ${a.suggestion ? `<p class="small">Suggestion: ${esc(a.suggestion)}</p>` : ""}
+        <button class="linklike" type="button" data-show="${esc(a.id)}">Show on page</button>
+      </div></li>`).join("") : `<li class="small muted">No issues were marked on this work.</li>`;
+
+  $("dlMarked").onclick = ()=>downloadAuthed(`/marked_pdf?id=${encodeURIComponent(s.id)}`, `${(s.file_name || "assignment.pdf").replace(/\.pdf$/i, "")} - marked.pdf`);
+
+  if(String(s.file_type).toLowerCase() !== "pdf"){
+    $("pdf").innerHTML = `<div class="alert">This file isn't a PDF, so it can't be shown marked. Your mark and comment are on this page.</div>`;
+    $("dlMarked").hidden = true;
+    return;
+  }
+  const marker = createPdfMarker($("pdf"), { editable: false });
+  $("issueList").addEventListener("click", e=>{ const b = e.target.closest("[data-show]"); if(b) marker.openIssue(b.dataset.show); });
+  try{
+    const res = await fetch(`${API_BASE}/download?id=${encodeURIComponent(s.id)}`, { headers: authHeaders() });
+    if(!res.ok) throw new Error();
+    await marker.load(await res.arrayBuffer());
+    marker.setIssues(issues);
+  }catch(e){
+    $("pdf").innerHTML = `<div class="alert bad">Your PDF couldn't be shown here. Use "Download marked PDF" instead.</div>`;
+  }
+}
+init();
+</script>
+<script src="js/date.js" defer></script>
+</body>
+</html>
