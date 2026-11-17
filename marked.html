@@ -62,6 +62,13 @@ async function init(){
   $("title").textContent = s.topic_title || s.file_name;
   $("meta").textContent = `${s.subject_name || ""}. ${s.file_name}, submitted ${fmtTime(s.submitted_at)}.`;
   $("mark").innerHTML = `<span class="mark">${esc(s.teacher_marks)}</span>${s.total_marks != null ? `<span class="small muted"> out of ${esc(s.total_marks)}</span>` : ""}`;
+  const cs = Array.isArray(s.corrections) ? s.corrections : [];
+  $("mark").insertAdjacentHTML("afterend", cs.map(c=>`<p class="corrected small">${c.from_marks !== c.to_marks
+    ? `Mark corrected ${esc(fmtDate(c.at))} from ${esc(c.from_marks)} to <b>${esc(c.to_marks)}</b>.`
+    : `Feedback updated ${esc(fmtDate(c.at))}.`} Reason: ${esc(c.reason)}</p>`).join(""));
+  // Opening the work counts as seeing its notices.
+  api("/notifications").then(n=>{ const ids = ((n && n.notifications) || []).filter(x=>x.submission_id === s.id).map(x=>x.id);
+    if(ids.length) api("/notifications", { method:"POST", body: JSON.stringify({ ids }) }); });
   const comment = ((s.feedback || []).find(f=>f.type === "low") || {}).text;
   $("comment").innerHTML = comment ? `<div class="feedback-low"><b>Your teacher's comment</b><div>${esc(comment)}</div></div>` : "";
   $("grid").hidden = false;

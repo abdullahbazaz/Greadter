@@ -110,6 +110,14 @@ export default async function handler(req, res) {
     line(`${sub.student_name}, roll ${sub.roll_no}`, { color: PENCIL });
     line(`${sub.subject_name || ''}${sub.topic_title ? `: ${sub.topic_title}` : ''}`, { color: PENCIL, gap: 14 });
     if (sub.published && sub.teacher_marks != null) line(`Mark: ${sub.teacher_marks}${sub.total_marks != null ? ` out of ${sub.total_marks}` : ''}`, { f: bold, size: 14, color: RED, gap: 12 });
+    const corrections = Array.isArray(sub.corrections) ? sub.corrections : [];
+    corrections.forEach(c => {
+      const when = String(c.at || '').slice(0, 10);
+      line(c.from_marks !== c.to_marks
+        ? `Corrected ${when}: mark changed from ${c.from_marks} to ${c.to_marks}. Reason: ${c.reason}`
+        : `Updated ${when}: ${(c.changed || []).join(' and ')} changed. Reason: ${c.reason}`, { color: PENCIL, gap: 4 });
+    });
+    if (corrections.length) y -= 8;
     const comment = (safeFeedback(sub.feedback).find(f => f.type === 'low') || {}).text;
     if (comment) { line('Comment', { f: bold, size: 12 }); line(comment, { gap: 4 }); y -= 10; }
     line(issues.length ? `Issues marked on your work (${issues.length})` : 'No issues were marked on this work.', { f: bold, size: 12, gap: 8 });

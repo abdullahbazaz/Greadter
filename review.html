@@ -75,8 +75,19 @@
           <button class="btn ok" id="publishBtn" type="button">Publish to student</button>
         </div>
         <button class="linklike" id="unverifyBtn" type="button" hidden>Undo verification</button>
+        <button class="btn" id="correctBtn" type="button" hidden>Correct this mark</button>
+        <div class="correct-box" id="correctBox" hidden>
+          <p class="small">Change the mark, the comment or the issues, then explain why. The student sees the new mark, the old one and your reason.</p>
+          <label for="correctReason">Reason for the correction <span class="muted">(the student sees this)</span></label>
+          <textarea id="correctReason" rows="3" maxlength="500" placeholder="e.g. Question 3 was marked against the wrong requirement."></textarea>
+          <div class="toolbar">
+            <button class="btn primary" id="saveCorrection" type="button">Save correction</button>
+            <button class="linklike" id="cancelCorrection" type="button">Cancel</button>
+          </div>
+        </div>
         <div id="decisionMsg" role="status" aria-live="polite"></div>
-        <p class="small muted" id="finalNote">Publishing sends the student their mark, your comment and the marked PDF. Published marks are final and can't be changed.</p>
+        <p class="small muted" id="finalNote"></p>
+        <div id="history"></div>
       </section>
     </aside>
   </div>

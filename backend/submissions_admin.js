@@ -1,5 +1,5 @@
 import sql from './db.js';
-import { requireRole, STAFF, canAccessSubject, intOrNull } from './auth.js';
+import { requireRole, STAFF, canAccessSubject, intOrNull, str } from './auth.js';
 import { safeFeedback } from './submissions.js';
 import { sanitizeAnnotations } from './annotations.js';
 
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
         SELECT s.id, s.subject_id, s.topic_id, s.topic_type, s.student_name, s.roll_no, s.reg_no, s.dept,
                s.file_name, s.file_type, s.size_kb, s.file_url, s.submitted_at, s.late,
                s.ai_marks, s.teacher_marks, s.published, s.similarity_group, s.similarity_pct, s.feedback,
-               s.verified_at, s.ai_review - 'text' AS ai_review, jsonb_array_length(s.annotations) AS issue_count,
+               s.verified_at, s.corrections, s.ai_review - 'text' AS ai_review, jsonb_array_length(s.annotations) AS issue_count,
                COALESCE(st.title, ct.title) AS topic_title, st.total_marks, sub.name AS subject_name
         FROM submissions s
         LEFT JOIN topics st ON s.topic_type = 'teacher' AND s.topic_id = st.id
@@ -63,27 +63,37 @@ export default async function handler(req, res) {
     const b = req.body;
     const has = key => Object.hasOwn(b, key);
 
-    // Bulk publish / unpublish: { ids: [...], published: bool }.
-    // Publishing only releases verified submissions; the rest are reported as skipped.
+    // Bulk publish: { ids: [...], published: true }. Only verified submissions are released;
+    // the rest are reported as skipped. Each student gets a notification.
     if (Array.isArray(b.ids)) {
       if (!has('published')) return res.status(400).json({ error: 'published required' });
-      if (!b.published) return res.status(409).json({ error: 'Published marks are final and cannot be unpublished.' });
+      if (!b.published) return res.status(409).json({ error: "Published marks can't be unpublished. Open one and use \"Correct this mark\" to change it." });
       const ids = b.ids.filter(x => typeof x === 'string');
       if (!ids.length) return res.status(200).json({ ok: true, updated: 0, skipped: 0 });
       const rows = await sql`
         UPDATE submissions
-        SET published = ${!!b.published}
-        WHERE id = ANY(${ids})
-          AND (${!b.published} OR verified_at IS NOT NULL)
+        SET published = true
+        WHERE id = ANY(${ids}) AND NOT published AND verified_at IS NOT NULL
           AND (${tid}::text IS NULL OR subject_id IN (
             SELECT sub.id FROM subjects sub JOIN section_teachers st ON st.section_id = sub.section_id
             WHERE st.teacher_id = ${tid}))
         RETURNING id
       `;
+      if (rows.length) {
+        await sql`
+          INSERT INTO notifications (student_reg_no, submission_id, kind, message)
+          SELECT s.reg_no, s.id, 'mark_published',
+                 'Your mark for ' || COALESCE(t.title, ct.title, 'an assignment') || ' is ready.'
+          FROM submissions s
+          LEFT JOIN topics t ON s.topic_type = 'teacher' AND s.topic_id = t.id
+          LEFT JOIN custom_topics ct ON s.topic_type = 'custom' AND s.topic_id = ct.id
+          WHERE s.id = ANY(${rows.map(r => r.id)})
+        `;
+      }
       return res.status(200).json({ ok: true, updated: rows.length, skipped: ids.length - rows.length });
     }
 
-    // Single submission: { id, teacher_marks?, feedback?, annotations?, verify?, published? }
+    // Single submission: { id, teacher_marks?, feedback?, annotations?, verify?, published?, correction_reason? }
     const { id } = b;
     if (!id) return res.status(400).json({ error: 'id required' });
     if (!['teacher_marks', 'feedback', 'annotations', 'verify', 'published'].some(has)) {
@@ -93,14 +103,24 @@ export default async function handler(req, res) {
     if (Number.isNaN(marksInput)) return res.status(400).json({ error: 'The mark must be a whole number' });
 
     const [existing] = await sql`
-      SELECT s.*, t.total_marks FROM submissions s
+      SELECT s.*, t.total_marks, COALESCE(t.title, ct.title) AS topic_title FROM submissions s
       LEFT JOIN topics t ON s.topic_type = 'teacher' AND s.topic_id = t.id
+      LEFT JOIN custom_topics ct ON s.topic_type = 'custom' AND s.topic_id = ct.id
       WHERE s.id = ${id}
     `;
     if (!existing) return res.status(404).json({ error: 'Submission not found' });
     if (!(await canAccessSubject(session, existing.subject_id))) return res.status(403).json({ error: 'Not your subject' });
-    // Grades are final once published: nothing about this submission can change after that.
-    if (existing.published) return res.status(409).json({ error: 'This mark is published and final, so it can no longer be changed.' });
+
+    // After publishing, changes are corrections: they need a reason the student will see,
+    // the mark stays published, and every correction is kept in the history.
+    const correcting = !!existing.published;
+    const reason = str(b.correction_reason, 500);
+    if (correcting) {
+      if (!reason) return res.status(409).json({ error: 'This mark is published. To change it, use "Correct this mark" and give a reason.' });
+      if (has('verify') || (has('published') && !b.published)) {
+        return res.status(400).json({ error: "A published mark stays published. Change the mark, comment or issues as a correction instead." });
+      }
+    }
 
     const nextMarks = marksInput !== undefined ? marksInput : existing.teacher_marks;
     if (nextMarks != null && existing.total_marks != null && nextMarks > existing.total_marks) {
@@ -109,7 +129,10 @@ export default async function handler(req, res) {
 
     // Verification is the teacher's sign-off on the mark. Un-verifying also unpublishes.
     let verifiedAt = existing.verified_at, verifiedBy = existing.verified_by;
-    if (has('verify')) {
+    if (correcting) {
+      if (nextMarks == null) return res.status(400).json({ error: 'A published mark needs a value' });
+      verifiedAt = new Date().toISOString(); verifiedBy = session.user_id;   // the correction is a fresh sign-off
+    } else if (has('verify')) {
       if (b.verify) {
         if (nextMarks == null) return res.status(400).json({ error: 'Set a mark before verifying' });
         verifiedAt = new Date().toISOString(); verifiedBy = session.user_id;
@@ -134,16 +157,44 @@ export default async function handler(req, res) {
 
     const nextAnnotations = has('annotations') ? sanitizeAnnotations(b.annotations) : sanitizeAnnotations(existing.annotations);
 
+    // Record a correction (and refuse one that changes nothing).
+    let corrections = Array.isArray(existing.corrections) ? existing.corrections : [];
+    let notice = null;
+    if (correcting) {
+      const changed = [];
+      if ((existing.teacher_marks ?? null) !== (nextMarks ?? null)) changed.push('mark');
+      if (JSON.stringify(safeFeedback(existing.feedback)) !== JSON.stringify(nextFeedback)) changed.push('comment');
+      if (JSON.stringify(sanitizeAnnotations(existing.annotations)) !== JSON.stringify(nextAnnotations)) changed.push('issues');
+      if (!changed.length) return res.status(400).json({ error: "Nothing has changed yet, so there's no correction to save." });
+      corrections = [...corrections, {
+        at: verifiedAt, by: session.user_id, by_type: session.user_type,
+        from_marks: existing.teacher_marks ?? null, to_marks: nextMarks, reason, changed,
+      }].slice(-50);
+      const what = existing.topic_title || 'an assignment';
+      notice = { kind: 'mark_corrected', message: changed.includes('mark')
+        ? `Your mark for ${what} was corrected from ${existing.teacher_marks} to ${nextMarks}.`
+        : `Your teacher updated the feedback on ${what}.` };
+    } else if (nextPublished && !existing.published) {
+      notice = { kind: 'mark_published', message: `Your mark for ${existing.topic_title || 'an assignment'} is ready.` };
+    }
+
     await sql`
       UPDATE submissions
       SET teacher_marks = ${nextMarks ?? null},
           feedback = ${JSON.stringify(nextFeedback)},
           annotations = ${JSON.stringify(nextAnnotations)},
           verified_at = ${verifiedAt}, verified_by = ${verifiedBy},
-          published = ${nextPublished}
+          published = ${nextPublished},
+          corrections = ${JSON.stringify(corrections)}
       WHERE id = ${id}
     `;
-    return res.status(200).json({ ok: true, verified: !!verifiedAt, published: nextPublished });
+    if (notice) {
+      await sql`
+        INSERT INTO notifications (student_reg_no, submission_id, kind, message)
+        VALUES (${existing.reg_no}, ${id}, ${notice.kind}, ${notice.message})
+      `;
+    }
+    return res.status(200).json({ ok: true, verified: !!verifiedAt, published: nextPublished, corrected: correcting });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: 'Server error' });

@@ -23,6 +23,10 @@ function forStudent(r) {
     total_marks: released ? (r.total_marks ?? null) : null,
     feedback: released ? safeFeedback(r.feedback) : [],
     annotations: released ? forStudentAnnotations(r.annotations) : [],
+    // Corrections after publishing: when, from what, to what, and why (not who).
+    corrections: released && Array.isArray(r.corrections)
+      ? r.corrections.map(c => ({ at: c.at, from_marks: c.from_marks, to_marks: c.to_marks, reason: c.reason, changed: c.changed }))
+      : [],
   };
 }
 

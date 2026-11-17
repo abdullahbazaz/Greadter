@@ -13,8 +13,30 @@ let selectedCustomTopic = null;
 let stagedFiles = [];
 let uploading = false;
 
+// Notices about published and corrected marks (the same rows will later be emailed).
+async function loadNotices(){
+  const r = await api("/notifications");
+  const list = (r && r.notifications) || [];
+  const box = $("notices");
+  box.hidden = !list.length;
+  if(!list.length){ box.innerHTML = ""; return; }
+  box.innerHTML = `<h2>New for you</h2><ul>${list.map(n=>`<li class="notice notice-${n.kind === "mark_corrected" ? "corrected" : "published"}">
+      <span>${esc(n.message)} <span class="small muted">${esc(fmtTime(n.created_at))}</span></span>
+      <span class="toolbar">${n.submission_id ? `<a class="link" href="marked.html?id=${encodeURIComponent(n.submission_id)}" data-read="${esc(n.id)}">See it</a>` : ""}
+      <button class="linklike" type="button" data-dismiss="${esc(n.id)}">Dismiss</button></span></li>`).join("")}</ul>
+    ${list.length > 1 ? `<button class="linklike" type="button" data-dismiss-all>Dismiss all</button>` : ""}`;
+}
+$("notices").addEventListener("click", async e=>{
+  const one = e.target.closest("[data-dismiss]"), all = e.target.closest("[data-dismiss-all]"), open = e.target.closest("[data-read]");
+  if(open){ api("/notifications", { method:"POST", body: JSON.stringify({ ids:[open.dataset.read] }) }); return; }   // let the link navigate
+  if(!one && !all) return;
+  await api("/notifications", { method:"POST", body: JSON.stringify(all ? { all:true } : { ids:[one.dataset.dismiss] }) });
+  loadNotices();
+});
+
 async function init(){
   if(!session) return;
+  loadNotices();
   const [meRes, subjRes] = await Promise.all([api("/me"), api("/subjects"), refreshSubs()]);
   if(!meRes || !meRes.ok){ clearSession(); location.replace(LOGIN_PAGE.student); return; }
   me = meRes.user;
@@ -255,6 +277,13 @@ function feedbackHTML(fb){
   }).join("");
 }
 
+function correctionsHTML(s){
+  const cs = Array.isArray(s.corrections) ? s.corrections : [];
+  return cs.map(c=>`<p class="corrected small">${c.from_marks !== c.to_marks
+    ? `Mark corrected ${esc(fmtDate(c.at))} from ${esc(c.from_marks)} to <b>${esc(c.to_marks)}</b>.`
+    : `Feedback updated ${esc(fmtDate(c.at))}.`} Reason: ${esc(c.reason)}</p>`).join("");
+}
+
 function renderMySubs(){
   const box = $("mySubs"); box.innerHTML = "";
   if(!mySubs.length){ box.innerHTML = `<div class="muted small">Nothing yet.</div>`; return; }
@@ -266,6 +295,7 @@ function renderMySubs(){
       ${s.published&&s.teacher_marks!=null?`<p><span class="mark">${esc(s.teacher_marks)}</span>${s.total_marks!=null?`<span class="small muted"> out of ${esc(s.total_marks)}</span>`:""}</p>`:""}
       <div>${s.published?`<span class="tag pub">marked</span>${s.annotations&&s.annotations.length?` <span class="small muted">${s.annotations.length} ${s.annotations.length===1?"issue":"issues"} marked</span>`:""}`:'<span class="tag unpub">Waiting for your teacher to mark it</span>'}
       ${s.late?'<span class="tag late">late submission</span>':""}</div>
+      ${correctionsHTML(s)}
       <div>${feedbackHTML(s.feedback)}</div>
       <div class="toolbar">
         ${s.published?`<a class="btn small primary" href="marked.html?id=${encodeURIComponent(s.id)}">See marked work</a>`:""}

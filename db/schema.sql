@@ -129,6 +129,7 @@ CREATE TABLE IF NOT EXISTS submissions (
     annotations JSONB NOT NULL DEFAULT '[]'::jsonb,  -- issues marked on the PDF (AI-found ones the teacher kept + teacher-added); students see these once published
     verified_at TIMESTAMP,    -- set when a teacher confirms the mark; publishing requires it
     verified_by TEXT,         -- teacher or admin id
+    corrections JSONB NOT NULL DEFAULT '[]'::jsonb,  -- history of changes after publishing: [{at, by, from_marks, to_marks, reason, changed}]
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -141,7 +142,21 @@ CREATE TABLE IF NOT EXISTS enrollments (
     PRIMARY KEY (student_reg_no, section_id)
 );
 
--- 11. Auth sessions (token is 64 random hex chars)
+-- 11. Notifications to students (an outbox). Written when a mark is published or corrected.
+--     The student page shows unread ones; a future email sender sends rows where emailed_at IS NULL
+--     and sets emailed_at, so adding email needs no other change.
+CREATE TABLE IF NOT EXISTS notifications (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    student_reg_no TEXT NOT NULL REFERENCES students(reg_no) ON DELETE CASCADE,
+    submission_id TEXT REFERENCES submissions(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL CHECK (kind IN ('mark_published','mark_corrected')),
+    message TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    read_at TIMESTAMP,        -- the student dismissed it on the site
+    emailed_at TIMESTAMP      -- set by the email sender once built
+);
+
+-- 12. Auth sessions (token is 64 random hex chars)
 CREATE TABLE IF NOT EXISTS sessions (
     token TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
@@ -159,6 +174,7 @@ ALTER TABLE submissions ADD COLUMN IF NOT EXISTS ai_review JSONB;
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS annotations JSONB NOT NULL DEFAULT '[]'::jsonb;
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP;
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS verified_by TEXT;
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS corrections JSONB NOT NULL DEFAULT '[]'::jsonb;
 ALTER TABLE sections    ADD COLUMN IF NOT EXISTS batch_year INTEGER CHECK (batch_year BETWEEN 2000 AND 2100);
 
 -- ============================================================
@@ -175,5 +191,7 @@ CREATE INDEX IF NOT EXISTS idx_custom_topics_subject ON custom_topics(subject_id
 CREATE INDEX IF NOT EXISTS idx_enrollments_student ON enrollments(student_reg_no);
 CREATE INDEX IF NOT EXISTS idx_section_teachers_teacher ON section_teachers(teacher_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(student_reg_no) WHERE read_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_notifications_unemailed ON notifications(created_at) WHERE emailed_at IS NULL;
 -- sessions.token is the primary key, so it already has an index.
 DROP INDEX IF EXISTS idx_sessions_token;

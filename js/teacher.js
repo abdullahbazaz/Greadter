@@ -401,7 +401,7 @@ function renderPublish(){
       <td>${s.teacher_marks!=null?`<b>${esc(s.teacher_marks)}</b>`:'<span class="muted">—</span>'}</td>
       <td><span class="state-chip state-${st.key}">${esc(st.label)}</span></td>
       <td>${s.published
-        ? `<span class="small muted">Final</span>`
+        ? `<a class="btn small" href="${reviewLink(s)}">Open to correct</a>`
         : verified
           ? `<button class="btn small ok" data-pub="${esc(s.id)}">Publish</button>`
           : `<a class="btn small" href="${reviewLink(s)}">Review first</a>`}</td></tr>`;
@@ -410,18 +410,18 @@ function renderPublish(){
   $("pubTable").innerHTML = h;
   $("pubTable").querySelectorAll("[data-pub]").forEach(b=>b.onclick=async ()=>{
     const s = allSubmissions.find(x=>x.id===b.dataset.pub);
-    if(!confirm(`Publish ${s.teacher_marks} to ${s.student_name}? Published marks are final and can't be changed.`)) return;
+    if(!confirm(`Publish ${s.teacher_marks} to ${s.student_name}? They'll get a notice. After publishing, any change has to be a correction with a reason.`)) return;
     const r = await api("/submissions_admin", { method:"POST", body: JSON.stringify({ id: s.id, published: true }) });
     if(r && !r.ok) alert(r.error);
     await loadData();
   });
 }
 
-// Bulk publish (verified only; publishing is final): one request instead of one per submission.
+// Bulk publish (verified only; later changes are corrections): one request instead of one per submission.
 async function bulkPublish(published){
   const ready = allSubmissions.filter(inScope).filter(s=>s.verified_at && !s.published);
   if(!ready.length){ alert("No verified marks are waiting to be published."); return; }
-  if(!confirm(`Publish ${ready.length} verified ${ready.length===1?"mark":"marks"}? Students will see their marks, comments and marked PDFs. Published marks are final and can't be changed.`)) return;
+  if(!confirm(`Publish ${ready.length} verified ${ready.length===1?"mark":"marks"}? Students will see their marks, comments and marked PDFs, and get a notice. After publishing, any change has to be a correction with a reason.`)) return;
   const ids = ready.map(s=>s.id);
   const r = await api("/submissions_admin", { method:"POST", body: JSON.stringify({ ids, published }) });
   await loadData();

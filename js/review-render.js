@@ -18,7 +18,7 @@ const STUCK_MS = 10 * 60 * 1000;
 // Where a submission is in the marking process, for teacher-facing lists.
 function reviewState(s){
   const r = s.ai_review || {}, st = r.status;
-  if(s.published) return { key:"published", label:"Published, final", rank:5 };
+  if(s.published) return { key:"published", label: Array.isArray(s.corrections) && s.corrections.length ? "Published, corrected" : "Published", rank:5 };
   if(s.verified_at) return { key:"verified", label:"Verified, not published", rank:4 };
   if(st === "processing" && r.started_at && Date.now() - Date.parse(r.started_at) > STUCK_MS)
     return { key:"failed", label:"AI check stopped", rank:0 };

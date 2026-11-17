@@ -4,8 +4,9 @@ const session = requirePageRole("teacher");
 const subId = new URLSearchParams(location.search).get("id");
 let sub = null, review = null, others = [], issues = [], marker = null, pdfData = null;
 let saveChain = Promise.resolve();
+let correcting = false;   // editing a published mark; changes are sent together with a reason
 
-const locked = () => !!(sub && sub.published);
+const locked = () => !!(sub && sub.published) && !correcting;
 const commentOf = fb => ((Array.isArray(fb) ? fb : []).find(f=>f.type === "low") || {}).text || "";
 const aiPassages = () => (review && review.ai_text && review.ai_text.passages || []).map(p=>({ page:p.page, quote:p.quote }));
 
@@ -78,6 +79,8 @@ function placeAiIssues(){
 }
 
 function saveIssues(msg){
+  // During a correction, issue edits wait for "Save correction" so the student gets one change with a reason.
+  if(correcting){ $("decisionMsg").innerHTML = `<div class="alert">Not sent yet. Press "Save correction" to update the student's copy.</div>`; return saveChain; }
   saveChain = saveChain.then(async ()=>{
     const r = await api("/submissions_admin", { method:"POST", body: JSON.stringify({ id: sub.id, annotations: issues }) });
     if(!r) return;
@@ -135,7 +138,7 @@ function render(){
   $("headTags").innerHTML = flagTags(sub);
 
   const st = reviewState(sub), done = review && review.status === "done";
-  $("aiBar").hidden = !isPdf(sub) || locked();
+  $("aiBar").hidden = !isPdf(sub) || !!sub.published;
   $("runAi").disabled = st.key === "checking";
   $("runAi").textContent = st.key === "checking" ? "AI is checking…" : done ? "Run AI check again" : "Run AI check";
   if(done && !$("aiState").dataset.busy) $("aiState").textContent = `Checked ${fmtTime(review.checked_at)}.`;
@@ -144,8 +147,10 @@ function render(){
 
   $("viewerTools").hidden = !isPdf(sub);
   $("drawBtn").hidden = locked();
-  $("editHint").textContent = locked() ? "Published: the mark and issues are final." : "Select text on the page to mark it as an issue. To mark a diagram, press \"Mark a diagram\" and drag a box around it.";
-  $("issueHelp").textContent = locked() ? "These are the issues the student received." : "Issues show in red on the page. Click one to read it. Students see the issues you keep once you publish.";
+  $("editHint").textContent = locked() ? "Published. To change the mark, comment or issues, use \"Correct this mark\"." : "Select text on the page to mark it as an issue. To mark a diagram, press \"Mark a diagram\" and drag a box around it.";
+  $("issueHelp").textContent = locked() ? "These are the issues the student received."
+    : correcting ? "Add or delete issues as part of the correction. The student's copy updates when you save it."
+    : "Issues show in red on the page. Click one to read it. Students see the issues you keep once you publish.";
 
   $("aiMarkBlock").hidden = $("aiTextBlock").hidden = $("simBlock").hidden = !done;
   if(done){
@@ -169,14 +174,25 @@ function renderVerdict(){
   $("marksHint").textContent = !locked() && sub.teacher_marks == null && aiMark != null && String($("marks").value) === String(aiMark)
     ? "Filled in with the AI's suggestion. Change it if you disagree." : "";
   const verified = !!sub.verified_at;
-  $("decideBtns").hidden = locked();
+  const published = !!sub.published;
+  $("decideBtns").hidden = published;
   $("verifyBtn").hidden = verified;
-  $("unverifyBtn").hidden = !verified || locked();
+  $("unverifyBtn").hidden = !verified || published;
   $("publishBtn").disabled = !verified;
   $("publishBtn").title = verified ? "" : "Verify the mark first";
-  $("finalNote").textContent = locked()
-    ? "Published. This mark is final: the student has their mark, your comment and the marked PDF."
-    : "Publishing sends the student their mark, your comment and the marked PDF. Published marks are final and can't be changed.";
+  $("correctBtn").hidden = !published || correcting;
+  $("correctBox").hidden = !correcting;
+  $("finalNote").textContent = correcting ? ""
+    : published ? "Published: the student has their mark, your comment and the marked PDF. To change anything, correct the mark; the student sees the change and your reason."
+    : "Publishing sends the student their mark, your comment and the marked PDF. After that, any change is a correction the student is told about.";
+  renderHistory();
+}
+
+function renderHistory(){
+  const cs = Array.isArray(sub.corrections) ? sub.corrections : [];
+  $("history").innerHTML = cs.length ? `<h3 class="form-title">Corrections</h3><ol class="history">${cs.slice().reverse().map(c=>`<li>
+      <p><b>${esc(fmtTime(c.at))}</b>: ${c.from_marks !== c.to_marks ? `mark ${esc(c.from_marks)} to <b>${esc(c.to_marks)}</b>` : `${esc((c.changed || []).join(" and "))} changed`}${c.by === session.userId ? " by you" : ""}</p>
+      <p class="small muted">Reason: ${esc(c.reason)}</p></li>`).join("")}</ol>` : "";
 }
 
 function readMarks(){
@@ -195,7 +211,7 @@ async function decide(action){
   const m = readMarks(), msg = $("decisionMsg");
   if(m.error){ msg.innerHTML = `<div class="alert bad">${esc(m.error)}</div>`; $("marks").focus(); return; }
   if(action === "verify" && m.value == null){ msg.innerHTML = `<div class="alert bad">Enter a mark before verifying.</div>`; $("marks").focus(); return; }
-  if(action === "publish" && !confirm(`Publish ${m.value} out of ${sub.total_marks ?? "?"} to ${sub.student_name}? They'll see the mark, your comment and the ${issues.length} marked ${issues.length === 1 ? "issue" : "issues"}. Published marks are final and can't be changed.`)) return;
+  if(action === "publish" && !confirm(`Publish ${m.value} out of ${sub.total_marks ?? "?"} to ${sub.student_name}? They'll see the mark, your comment and the ${issues.length} marked ${issues.length === 1 ? "issue" : "issues"}, and get a notice. After publishing, any change has to be a correction with a reason.`)) return;
   const c = $("comment").value.trim();
   const body = { id: sub.id, teacher_marks: m.value, feedback: c ? [{ type:"low", text:c }] : [], annotations: issues };
   if(action === "verify") body.verify = true;
@@ -212,6 +228,45 @@ async function decide(action){
   render();
   if(action === "publish"){ marker = null; await loadPdf(); }   // reload read-only
   msg.innerHTML = `<div class="alert ok">${esc(DONE_MSG[action])}</div>`;
+}
+
+// ---- correcting a published mark ----
+async function startCorrection(){
+  correcting = true;
+  $("correctReason").value = "";
+  render();
+  marker = null; await loadPdf();   // reopen the PDF with editing on
+  $("marks").focus();
+}
+async function cancelCorrection(){
+  correcting = false;
+  await load();
+  $("marks").value = sub.teacher_marks ?? "";
+  $("comment").value = commentOf(sub.feedback);
+  render();
+  marker = null; await loadPdf();
+  $("decisionMsg").innerHTML = `<div class="alert">Correction cancelled. Nothing was changed.</div>`;
+}
+async function saveCorrection(){
+  const m = readMarks(), msg = $("decisionMsg"), reason = $("correctReason").value.trim();
+  if(m.error || m.value == null){ msg.innerHTML = `<div class="alert bad">${esc(m.error || "A published mark needs a value.")}</div>`; $("marks").focus(); return; }
+  if(!reason){ msg.innerHTML = `<div class="alert bad">Give a reason for the correction. The student will see it.</div>`; $("correctReason").focus(); return; }
+  const markChanged = m.value !== sub.teacher_marks;
+  if(!confirm(markChanged
+    ? `Change ${sub.student_name}'s mark from ${sub.teacher_marks} to ${m.value}? They'll see the new mark, the old one and your reason, and get a notice.`
+    : `Update ${sub.student_name}'s feedback? They'll see that it changed and your reason, and get a notice.`)) return;
+  const c = $("comment").value.trim();
+  $("saveCorrection").disabled = true;
+  const r = await api("/submissions_admin", { method:"POST", body: JSON.stringify({
+    id: sub.id, teacher_marks: m.value, feedback: c ? [{ type:"low", text:c }] : [], annotations: issues, correction_reason: reason }) });
+  $("saveCorrection").disabled = false;
+  if(!r) return;
+  if(!r.ok){ msg.innerHTML = `<div class="alert bad">${esc(r.error || "The correction didn't save. Try again.")}</div>`; return; }
+  correcting = false;
+  await load();
+  render();
+  marker = null; await loadPdf();
+  msg.innerHTML = `<div class="alert ok">Correction saved. ${esc(sub.student_name)} can see the change and your reason, and has a notice about it.</div>`;
 }
 
 // ---- AI check, started by the teacher ----
@@ -238,6 +293,9 @@ async function runAiCheck(){
 
 // ---- events ----
 $("runAi").onclick = runAiCheck;
+$("correctBtn").onclick = startCorrection;
+$("cancelCorrection").onclick = cancelCorrection;
+$("saveCorrection").onclick = saveCorrection;
 $("saveBtn").onclick = ()=>decide("save");
 $("verifyBtn").onclick = ()=>decide("verify");
 $("unverifyBtn").onclick = ()=>decide("unverify");

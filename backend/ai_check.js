@@ -59,7 +59,7 @@ export default async function handler(req, res) {
     `;
     if (!sub) return res.status(404).json({ error: 'Submission not found' });
     if (!(await canAccessSubject(session, sub.subject_id))) return res.status(403).json({ error: 'Not your subject' });
-    if (sub.published) return res.status(409).json({ error: 'This mark is published and final, so it can no longer be checked.' });
+    if (sub.published) return res.status(409).json({ error: 'This mark is published, so the AI check can no longer run on it. To change the mark, correct it on its review page.' });
     if (String(sub.file_type).toLowerCase() !== 'pdf' || !sub.file_url) {
       return res.status(400).json({ error: 'Only PDF submissions can be checked by AI. Download this file and mark it yourself.' });
     }
