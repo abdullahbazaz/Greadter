@@ -181,7 +181,7 @@ $("importRoster").onclick = ()=>{
     // Small parallel batches: faster than one-by-one without flooding the database.
     for(let i=0; i<rows.length; i+=5){
       const results = await Promise.all(rows.slice(i, i+5).map(([reg, name, roll, dept, email, section, year])=>
-        api("/signup", { method:"POST", body: JSON.stringify({ name, roll, reg, dept, email: email || `${reg}@roster.local`, section: section || null, year: year || null, role:"student" }) })));
+        api("/signup", { method:"POST", body: JSON.stringify({ name, roll, reg, dept, email: email || `${reg}@roster.local`, section: section || null, year: year || null, role:"student", import: true }) })));
       results.forEach(r=> r && r.ok ? okCount++ : failCount++);
     }
     $("importRoster").disabled = false;

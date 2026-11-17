@@ -45,9 +45,14 @@ export default async function handler(req, res) {
     if (role === 'student') {
       const reg = str(b.reg, 60), roll = str(b.roll, 60), section = str(b.section, 60);
 
+      // Roster import is an explicit admin action ({ import: true } from the admin page). Anything else is
+      // a student signing up, even if the browser happens to hold an admin login.
+      const rosterImport = b.import === true;
+      if (rosterImport && !isAdmin) return res.status(403).json({ error: 'Only an admin can import students.' });
+
       // Self-signup: only a student already on the roster (imported by an admin)
       // can create an account, by proving their reg. no. and roll no.
-      if (!isAdmin) {
+      if (!rosterImport) {
         if (!reg) return res.status(400).json({ error: 'Enter your registration number' });
         if (!roll) return res.status(400).json({ error: 'Enter your roll number' });
         if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Enter a valid email address' });
