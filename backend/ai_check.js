@@ -6,7 +6,7 @@ import { PDFDocument } from 'pdf-lib';
 import { sanitizeAnnotations } from './annotations.js';
 import { MAX_PAGES } from './auth.js';
 
-// New uploads are capped at 3 MB (auth.js); older ones could be larger, so read at most 10 MB.
+// New uploads are capped at 8 MB (auth.js); older ones could be larger, so read at most 10 MB.
 const MAX_AI_BYTES = 10 * 1024 * 1024;
 const MAX_TEXT = 300000;
 

@@ -77,7 +77,7 @@ export default async function handler(req, res) {
     if (!topicId) return res.status(400).json({ error: 'topic_id required' });
     if (!ALLOWED_EXT.includes(ext)) return res.status(400).json({ error: 'Only PDF files can be submitted' });
     if (!Number.isFinite(sizeKb) || sizeKb < 0 || sizeKb * 1024 > MAX_UPLOAD_BYTES) {
-      return res.status(400).json({ error: 'The PDF is over the 3 MB limit' });
+      return res.status(400).json({ error: 'The PDF is over the 8 MB limit' });
     }
 
     // Identity comes from the database, not from what the browser typed in.

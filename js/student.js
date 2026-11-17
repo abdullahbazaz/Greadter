@@ -1,6 +1,6 @@
 // Student workspace — live API backend (Neon via Vercel). Requires js/auth.js.
 const ALLOWED_EXT = ["pdf"];   // assignments are PDF only
-const MAX_MB = 3, MAX_PAGES = 20;   // same limits as the server (backend/auth.js)
+const MAX_MB = 8, MAX_PAGES = 20;   // same limits as the server (backend/auth.js)
 
 const session = requirePageRole("student");
 let me = null;
@@ -176,7 +176,7 @@ async function stageFiles(fileList){
     const ext = f.name.includes(".") ? f.name.split(".").pop().toLowerCase() : "";
     if(!ALLOWED_EXT.includes(ext)){ reject(`${esc(f.name)} isn't a PDF. Save or export it as a PDF and upload that.`); continue; }
     if(f.size/1024/1024 > MAX_MB){
-      reject(`${esc(f.name)} is ${(f.size/1048576).toFixed(1)} MB; the limit is ${MAX_MB} MB. Save it again with a smaller file size (in Word: File, Save as PDF, "Minimum size"), or compress the images in it.`); continue;
+      reject(`${esc(f.name)} is ${(f.size/1048576).toFixed(1)} MB; the limit is ${MAX_MB} MB. Save it again with a smaller file size (in Word: File, Save as PDF, "Minimum size"), or scan at a lower resolution (150–200 dpi is plenty).`); continue;
     }
     if(window.pdfjsLib){
       const pages = await pdfPageCount(f);

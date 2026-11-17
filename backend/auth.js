@@ -66,8 +66,8 @@ export const str = (v, max = 500) => (typeof v === 'string' ? v.trim().slice(0, 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Assignments are PDF only: they're marked on the page (text and diagrams) and returned as a marked PDF.
 export const ALLOWED_EXT = ['pdf'];
-// 3 MB fits a typed 20-page assignment with diagrams; scans or photo-heavy PDFs need compressing.
-export const MAX_UPLOAD_BYTES = 3 * 1024 * 1024;
+// 8 MB fits a typed 20-page assignment (usually under 2 MB) and most 20-page scans or photographed pages.
+export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 export const MAX_PAGES = 20;
 
 // ---- scoping (teachers only reach sections an admin assigned them) ----

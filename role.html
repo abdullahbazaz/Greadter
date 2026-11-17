@@ -28,7 +28,7 @@
 const role = new URLSearchParams(location.search).get('role');
 const pages = {
   student: { title: 'Students', sub: 'Log in if you already have an account, or sign up with your registration number.', login: 'student-login.html', signup: 'student-signup.html' },
-  teacher: { title: 'Teachers', sub: 'Log in, or sign up with your university email. An admin approves new teacher accounts.', login: 'teacher-login.html', signup: 'teacher-signup.html' },
+  teacher: { title: 'Teachers', sub: 'Log in, or sign up with your university or personal email. An admin approves new teacher accounts.', login: 'teacher-login.html', signup: 'teacher-signup.html' },
   admin:   { title: 'Admins', sub: 'Log in to manage departments, sections, teachers and the student roster.', login: 'admin-login.html', signup: 'admin-signup.html' },
 };
 const p = pages[role] || pages.student;
