@@ -14,6 +14,33 @@ const FALLBACK_MODELS = ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-fable-5
 
 export const aiConfigured = () => !!(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
 
+// US$ per million tokens (Claude API list prices, Nov 2026). Used to estimate what each check cost,
+// which the daily budget is enforced against. Update when prices or the model change.
+const PRICES = {
+  'claude-opus-5-5':   { in: 4.00, out: 20.00 },
+  'claude-sonnet-5-5': { in: 2.00, out: 10.00 },
+  'claude-haiku-5-5':  { in: 0.10, out: 0.50, over100k: { in: 0.50, out: 2.50 } },   // higher rate for prompts over 100K tokens
+};
+const UNKNOWN_PRICE = { in: 10.00, out: 50.00 };   // unknown model: assume expensive so the budget stays safe
+
+// Spending limits, set as Vercel environment variables.
+export function aiLimits() {
+  const num = (v, d) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : d);
+  return {
+    dailyBudgetUsd: num(process.env.AI_DAILY_BUDGET_USD, 5),
+    perTeacherPerDay: Math.floor(num(process.env.AI_CHECKS_PER_TEACHER_PER_DAY, 100)),
+    maxConcurrent: Math.floor(num(process.env.AI_MAX_CONCURRENT, 5)),
+  };
+}
+
+export function estimateCost(model, usage) {
+  if (!usage) return 0;
+  const input = (usage.input_tokens || 0) + (usage.cache_creation_input_tokens || 0) * 1.25 + (usage.cache_read_input_tokens || 0) * 0.1;
+  const base = PRICES[model] || PRICES[AI_MODEL] || UNKNOWN_PRICE;
+  const p = base.over100k && input > 100000 ? base.over100k : base;
+  return Math.round(((input * p.in + (usage.output_tokens || 0) * p.out) / 1e6) * 10000) / 10000;
+}
+
 const REVIEW_TOOL = {
   name: 'record_review',
   description: 'Record the review of the student assignment: suggested mark, marks per criterion, every issue found, and an estimate of AI-written text.',
@@ -135,9 +162,18 @@ export async function runAiCheck({ pdfBase64, topicTitle, requirements, overview
     throw e;
   }
 
-  if (message.stop_reason === 'refusal') throw new Error('The AI declined to review this file. Mark it yourself.');
-  if (message.stop_reason === 'max_tokens') throw new Error('The review was too long to finish. Try again, or mark it yourself.');
+  const model = message.model || AI_MODEL;
+  const usage = {
+    input_tokens: message.usage?.input_tokens || 0, output_tokens: message.usage?.output_tokens || 0,
+    cache_creation_input_tokens: message.usage?.cache_creation_input_tokens || 0,
+    cache_read_input_tokens: message.usage?.cache_read_input_tokens || 0,
+  };
+  const costUsd = estimateCost(model, usage);
+  // These failures happen after the model has run, so the tokens were paid for: report the cost too.
+  const paidFailure = msg => Object.assign(new Error(msg), { model, usage, costUsd });
+  if (message.stop_reason === 'refusal') throw paidFailure('The AI declined to review this file. Mark it yourself.');
+  if (message.stop_reason === 'max_tokens') throw paidFailure('The review was too long to finish. Try again, or mark it yourself.');
   const call = message.content.find(b => b.type === 'tool_use' && b.name === 'record_review');
-  if (!call || !call.input || typeof call.input !== 'object') throw new Error("The AI didn't return a review. Try again.");
-  return { review: call.input, model: message.model || AI_MODEL };
+  if (!call || !call.input || typeof call.input !== 'object') throw paidFailure("The AI didn't return a review. Try again.");
+  return { review: call.input, model, usage, costUsd };
 }

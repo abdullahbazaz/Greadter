@@ -341,6 +341,7 @@ $("bulkAi").onclick = async ()=>{
   const show = ()=>{ msg.innerHTML = `<div class="alert">Checking ${done + failed} of ${runnable.length}… Keep this page open.</div>`; };
   show();
   const queue = [...runnable];
+  let stopped = "";
   async function worker(){
     while(queue.length){
       const s = queue.shift();
@@ -349,13 +350,24 @@ $("bulkAi").onclick = async ()=>{
         const res = await fetch(`${API_BASE}/download?id=${encodeURIComponent(s.id)}`, { headers: authHeaders() });
         if(res.ok) text = await extractPdfText(await res.arrayBuffer());
       }catch(e){ text = ""; }
-      const r = await api("/ai_check", { method:"POST", body: JSON.stringify({ id: s.id, text }) });
-      if(r && r.ok) done++; else { failed++; errors.push(`${s.student_name}: ${(r && r.error) || "failed"}`); }
+      let r = await api("/ai_check", { method:"POST", body: JSON.stringify({ id: s.id, text }) });
+      for(let tries = 0; r && r.limit === "busy" && tries < 3 && !stopped; tries++){
+        msg.innerHTML = `<div class="alert">Many checks are running at once; waiting a moment before continuing…</div>`;
+        await new Promise(ok=>setTimeout(ok, 20000));
+        r = await api("/ai_check", { method:"POST", body: JSON.stringify({ id: s.id, text }) });
+      }
+      if(r && r.ok) done++;
+      else {
+        failed++; errors.push(`${s.student_name}: ${(r && r.error) || "failed"}`);
+        // Out of budget or over the personal limit: the rest would fail too, so stop here.
+        if(r && (r.limit === "budget" || r.limit === "teacher")){ stopped = r.error; queue.length = 0; }
+      }
       show();
     }
   }
   await Promise.all([worker(), worker()]);
   btn.disabled = false;
+  if(stopped){ msg.innerHTML = `<div class="alert bad">Stopped after ${done} of ${runnable.length}: ${esc(stopped)}</div>`; btn.disabled = false; await loadData(); return; }
   msg.innerHTML = `<div class="alert ${failed ? "bad" : "ok"}">Checked ${done} of ${runnable.length}.${failed ? ` ${failed} failed: ${esc(errors.slice(0, 3).join("; "))}${errors.length > 3 ? "…" : ""}` : " Open each one to review the issues."}</div>`;
   await loadData();
 };

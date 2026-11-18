@@ -156,7 +156,23 @@ CREATE TABLE IF NOT EXISTS notifications (
     emailed_at TIMESTAMP      -- set by the email sender once built
 );
 
--- 12. Auth sessions (token is 64 random hex chars)
+-- 12. AI usage: one row per AI check, for spending limits and the admin usage panel.
+--     No foreign key to submissions, so spending history survives deletions.
+CREATE TABLE IF NOT EXISTS ai_usage (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    submission_id TEXT,
+    staff_id TEXT NOT NULL,
+    staff_type TEXT NOT NULL,
+    model TEXT,
+    status TEXT NOT NULL CHECK (status IN ('running','done','failed')),
+    input_tokens INTEGER,
+    output_tokens INTEGER,
+    cost_usd NUMERIC(10,4) NOT NULL DEFAULT 0,   -- estimated from list prices (backend/ai.js)
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    finished_at TIMESTAMP
+);
+
+-- 13. Auth sessions (token is 64 random hex chars)
 CREATE TABLE IF NOT EXISTS sessions (
     token TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
@@ -191,6 +207,7 @@ CREATE INDEX IF NOT EXISTS idx_custom_topics_subject ON custom_topics(subject_id
 CREATE INDEX IF NOT EXISTS idx_enrollments_student ON enrollments(student_reg_no);
 CREATE INDEX IF NOT EXISTS idx_section_teachers_teacher ON section_teachers(teacher_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_created ON ai_usage(created_at);
 CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(student_reg_no) WHERE read_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_notifications_unemailed ON notifications(created_at) WHERE emailed_at IS NULL;
 -- sessions.token is the primary key, so it already has an index.

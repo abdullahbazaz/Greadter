@@ -21,6 +21,7 @@ import settings from '../backend/settings.js';
 import aiCheck from '../backend/ai_check.js';
 import markedPdf from '../backend/marked_pdf.js';
 import notifications from '../backend/notifications.js';
+import aiUsage from '../backend/ai_usage.js';
 
 const routes = {
   login,
@@ -46,6 +47,7 @@ const routes = {
   ai_check: aiCheck,
   marked_pdf: markedPdf,
   notifications,
+  ai_usage: aiUsage,
 };
 
 export default async function handler(req, res) {

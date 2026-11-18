@@ -22,6 +22,7 @@ async function loadAll(){
   teachers = (t && t.teachers) || [];
   sections = (sec && sec.sections) || [];
   subjects = (sub && sub.subjects) || [];
+  renderAiUsage();
   renderDepartments(); renderSections(); renderPending(); renderTeachers(); renderSubjects(); renderRoster(); renderAccounts();
 }
 
@@ -32,6 +33,22 @@ async function post(path, body){
 }
 
 function row(html){ const d = document.createElement("div"); d.className = "rowline"; d.innerHTML = html; return d; }
+
+// ---- AI usage and spending limits ----
+async function renderAiUsage(){
+  const box = $("aiUsage");
+  const r = await api("/ai_usage");
+  if(!r || !r.ok){ box.innerHTML = `<p class="small muted">${esc((r && r.error) || "Usage couldn't be loaded.")}</p>`; return; }
+  const usd = n => `US$${(Number(n) || 0).toFixed(2)}`;
+  const L = r.limits, pct = Math.min(100, Math.round(100 * (r.today.cost / L.dailyBudgetUsd)));
+  box.innerHTML = `
+    <div class="meter" role="img" aria-label="${pct}% of today's budget used"><span style="width:${pct}%"></span></div>
+    <p><b>${usd(r.today.cost)}</b> of today's ${usd(L.dailyBudgetUsd)} budget used, by ${r.today.checks} ${r.today.checks === 1 ? "check" : "checks"}${r.running ? `; ${r.running} running now` : ""}.</p>
+    <p class="small">This month: ${usd(r.month.cost)} across ${r.month.checks} checks${r.month.checks ? `, about ${usd(r.month.cost / r.month.checks)} each` : ""}. Model: ${esc(r.model)}.</p>
+    <p class="small muted">Limits: ${usd(L.dailyBudgetUsd)} a day for the whole site, ${L.perTeacherPerDay} checks per person per day, ${L.maxConcurrent} at once. Budgets reset at 00:00 UTC.</p>
+    ${r.top.length ? `<div class="table-wrap"><table><tr><th>Most checks this month</th><th>Checks</th><th>Cost</th></tr>${r.top.map(t=>
+      `<tr><td>${esc(t.name || t.staff_id)}</td><td>${esc(t.checks)}</td><td>${usd(t.cost)}</td></tr>`).join("")}</table></div>` : ""}`;
+}
 
 // ---- departments ----
 function renderDepartments(){

@@ -1,7 +1,7 @@
 import { get } from '@vercel/blob';
 import sql from './db.js';
 import { requireRole, STAFF, canAccessSubject } from './auth.js';
-import { runAiCheck, aiConfigured } from './ai.js';
+import { runAiCheck, aiConfigured, aiLimits, AI_MODEL } from './ai.js';
 import { PDFDocument } from 'pdf-lib';
 import { sanitizeAnnotations } from './annotations.js';
 import { MAX_PAGES } from './auth.js';
@@ -67,6 +67,41 @@ export default async function handler(req, res) {
       return res.status(503).json({ error: "AI checks aren't set up yet. Add ANTHROPIC_API_KEY in the Vercel project settings." });
     }
 
+    // Already being checked (e.g. two teachers clicked at once): don't pay for it twice.
+    const prev = sub.ai_review || {};
+    if (prev.status === 'processing' && prev.started_at && Date.now() - Date.parse(prev.started_at) < 10 * 60 * 1000) {
+      return res.status(409).json({ error: 'This submission is already being checked. Wait for that check to finish.', limit: 'busy' });
+    }
+
+    // ---- spending limits, checked before any money is spent ----
+    const limits = aiLimits();
+    const [u] = await sql`
+      SELECT
+        COUNT(*) FILTER (WHERE status = 'running' AND created_at > NOW() - INTERVAL '5 minutes')::int AS running,
+        COALESCE(SUM(cost_usd) FILTER (WHERE created_at >= date_trunc('day', NOW())), 0)::float AS spent_today,
+        COUNT(*) FILTER (WHERE staff_id = ${session.user_id} AND created_at >= date_trunc('day', NOW()))::int AS mine_today
+      FROM ai_usage WHERE created_at > NOW() - INTERVAL '1 day'
+    `;
+    if (u.spent_today >= limits.dailyBudgetUsd) {
+      return res.status(429).json({ limit: 'budget', error: `Today's AI budget (US$${limits.dailyBudgetUsd}) has been used. Checks start again at 00:00 UTC, or an admin can raise AI_DAILY_BUDGET_USD.` });
+    }
+    if (u.mine_today >= limits.perTeacherPerDay) {
+      return res.status(429).json({ limit: 'teacher', error: `You've run ${u.mine_today} AI checks today, the daily limit per person. Checks start again at 00:00 UTC.` });
+    }
+    if (u.running >= limits.maxConcurrent) {
+      return res.status(429).json({ limit: 'busy', error: 'Too many AI checks are running right now. Try again in a minute.' });
+    }
+    const [usageRow] = await sql`
+      INSERT INTO ai_usage (submission_id, staff_id, staff_type, model, status)
+      VALUES (${id}, ${session.user_id}, ${session.user_type}, ${AI_MODEL}, 'running') RETURNING id
+    `;
+    const finishUsage = (status, r) => sql`
+      UPDATE ai_usage SET status = ${status}, model = ${(r && r.model) || AI_MODEL},
+        input_tokens = ${r && r.usage ? r.usage.input_tokens : null}, output_tokens = ${r && r.usage ? r.usage.output_tokens : null},
+        cost_usd = ${(r && r.costUsd) || 0}, finished_at = NOW()
+      WHERE id = ${usageRow.id}
+    `.catch(e => console.error('ai usage:', e));
+
     const startedAt = new Date().toISOString();
     await sql`UPDATE submissions SET ai_review = ${JSON.stringify({ status: 'processing', started_at: startedAt })} WHERE id = ${id}`;
 
@@ -88,11 +123,13 @@ export default async function handler(req, res) {
       result.durationMs = Date.now() - t0;
     } catch (e) {
       console.error('ai check:', e);
+      await finishUsage('failed', e);   // carries the cost when the model ran before failing
       const msg = (e && e.message) || 'The AI check failed.';
       await sql`UPDATE submissions SET ai_review = ${JSON.stringify({ status: 'failed', error: msg, started_at: startedAt })} WHERE id = ${id}`;
       return res.status(502).json({ error: msg });
     }
 
+    await finishUsage('done', result);
     const r = result.review;
     const total = sub.total_marks;
     const suggested = Number.isInteger(r.suggested_marks) ? Math.max(0, total != null ? Math.min(total, r.suggested_marks) : r.suggested_marks) : null;
